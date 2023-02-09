@@ -5,11 +5,23 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 message(STATUS "${CMAKE_PROJECT_NAME} version: ${PROJECT_VERSION}")
 
-find_package(Boost 1.81 COMPONENTS program_options REQUIRED)
+
 find_package(CURL REQUIRED)
+find_package(Poco REQUIRED Foundation Net)
 
-include_directories(${CURL_INCLUDE_DIR})
 
-INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+include_directories(${CURL_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${Poco_INCLUDE_DIRS})
 
-add_subdirectory(server)
+
+add_subdirectory(service)
+
+
+add_executable(main
+   main.cpp
+)
+
+# TARGET_LINK_LIBRARIES( main LINK_PUBLIC 
+# Poco::Foundation 
+# Poco::Net 
+# ${Boost_LIBRARIES} 
+# ${CURL_LIBRARIES} )
