@@ -11,5 +11,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 message(STATUS "${CMAKE_PROJECT_NAME} version: ${PROJECT_VERSION}")
 
+find_package(Qt6 CONFIG COMPONENTS Widgets REQUIRED)
+
 add_subdirectory(service)
 add_subdirectory(app)
+
+
+
