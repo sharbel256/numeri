@@ -1,7 +1,5 @@
 find_package(Qt6 CONFIG COMPONENTS Widgets REQUIRED)
 
-
-
 add_subdirectory(ui)
 
 add_executable(main
@@ -9,6 +7,7 @@ add_executable(main
 )
 
 target_link_libraries(main 
+    service_lib
     ui
     Qt6::Widgets
 )
