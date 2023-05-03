@@ -9,8 +9,6 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {   
-    Service service;
-    service.sendMessage(R"({"type": "subscribe", "product_ids": ["ETH-USD"], "channels": ["level2"]})");
     QApplication a(argc, argv);
 
     QString message("Hello World!");
