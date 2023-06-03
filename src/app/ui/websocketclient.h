@@ -1,3 +1,12 @@
+// WebSocketClient.h
+
+#ifndef WEBSOCKETCLIENT_H
+#define WEBSOCKETCLIENT_H
+
+#include <QObject>
+#include <QString>
+
+
 //------------------------------------------------------------------------------
 // 
 // WebSocket SSL client, asynchronous
@@ -22,15 +31,23 @@ namespace net = boost::asio;            // from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-//------------------------------------------------------------------------------
 
 // Report a failure
 inline void fail(beast::error_code ec, char const* what) {
     std::cerr << what << ": " << ec.message() << "\n";
 }
 
-// Sends a WebSocket message and prints the response
-class session : public std::enable_shared_from_this<session> {
+
+class WebSocketClient : public QObject, public std::enable_shared_from_this<WebSocketClient>
+{
+    Q_OBJECT
+
+signals:
+    void newDataReceived(const QString& data);
+
+private:
+    // your websocket handling code
+    // when new data arrives, emit newDataReceived(data)
     tcp::resolver resolver_;
     websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws_;
     beast::flat_buffer buffer_;
@@ -38,21 +55,42 @@ class session : public std::enable_shared_from_this<session> {
     std::string text_;
 
 public:
+volatile bool stopped = false;
+    ~WebSocketClient() {
+        std::cout << "WebSocketClient::~WebSocketClient()" << std::endl;
+        std::cout << "TODO: close websocket connection" << std::endl;
+    }
+    void connectToServer() {
+
+    }
+
     // Resolver and socket require an io_context
-    explicit session(net::io_context& ioc, ssl::context& ctx)
+    WebSocketClient(net::io_context& ioc, ssl::context& ctx)
         : resolver_(net::make_strand(ioc))
         , ws_(net::make_strand(ioc), ctx)
-    {}
+    {
+        std::cout << "WebSocketClient::WebSocketClient()" << std::endl;
+    }
+
+    void close() {
+        std::cout << "WebSocketClient::close()" << std::endl;
+        // Close the WebSocket connection
+        ws_.async_close(websocket::close_code::normal,
+        beast::bind_front_handler(&WebSocketClient::on_close,shared_from_this()));
+        std::cout << "WebSocketClient::close() after async_close()" << std::endl;
+    }
 
     // Start the asynchronous operation
     void run(char const* host, char const* port, char const* text) {
         // Save these for later
         host_ = host;
         text_ = text;
+        std::cout << "WebSocketClient::run()" << std::endl;
 
         // Look up the domain name
         resolver_.async_resolve(host,port,
-            beast::bind_front_handler(&session::on_resolve,shared_from_this()));
+            beast::bind_front_handler(&WebSocketClient::on_resolve,shared_from_this()));
+        std::cout << "WebSocketClient::run() after async_resolve()" << std::endl;
     }
 
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
@@ -63,7 +101,7 @@ public:
 
         // Make the connection on the IP address we get from a lookup
         beast::get_lowest_layer(ws_).async_connect( results,
-            beast::bind_front_handler(&session::on_connect,shared_from_this()));
+            beast::bind_front_handler(&WebSocketClient::on_connect,shared_from_this()));
     }
 
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep) {
@@ -88,7 +126,7 @@ public:
         
         // Perform the SSL handshake
         ws_.next_layer().async_handshake(ssl::stream_base::client,
-            beast::bind_front_handler(&session::on_ssl_handshake,shared_from_this()));
+            beast::bind_front_handler(&WebSocketClient::on_ssl_handshake,shared_from_this()));
     }
 
     void on_ssl_handshake(beast::error_code ec) {
@@ -113,7 +151,7 @@ public:
 
         // Perform the websocket handshake
         ws_.async_handshake(host_, "/",
-            beast::bind_front_handler(&session::on_handshake,shared_from_this()));
+            beast::bind_front_handler(&WebSocketClient::on_handshake,shared_from_this()));
     }
 
     void on_handshake(beast::error_code ec) {
@@ -121,7 +159,7 @@ public:
 
         // Send the message
         ws_.async_write( net::buffer(text_), 
-                beast::bind_front_handler(&session::on_write,shared_from_this()));
+                beast::bind_front_handler(&WebSocketClient::on_write,shared_from_this()));
     }
 
     void on_write(beast::error_code ec, std::size_t bytes_transferred) {
@@ -131,7 +169,7 @@ public:
 
         // Read a message into our buffer
         ws_.async_read(buffer_,
-            beast::bind_front_handler(&session::on_read,shared_from_this()));
+            beast::bind_front_handler(&WebSocketClient::on_read,shared_from_this()));
     }
 
     void on_read(beast::error_code ec,std::size_t bytes_transferred) {
@@ -140,23 +178,26 @@ public:
         if(ec) return fail(ec, "read");
 
         std::cout << beast::make_printable(buffer_.data()) << std::endl;
+        emit newDataReceived(QString::fromStdString(beast::buffers_to_string(buffer_.data())));
         buffer_.consume(buffer_.size());
 
         // Read a single message into our buffer
         ws_.async_read(buffer_,
-            beast::bind_front_handler(&session::on_read,shared_from_this()));
-
-    //     // Close the WebSocket connection
-    //     ws_.async_close(websocket::close_code::normal,
-    //         beast::bind_front_handler(&session::on_close,shared_from_this()));
+            beast::bind_front_handler(&WebSocketClient::on_read,shared_from_this()));
     }
 
     void on_close(beast::error_code ec) {
         if(ec) return fail(ec, "close");
 
         // If we get here then the connection is closed gracefully
+        std::cout << "WebSocketClient::on_close()" << std::endl;
 
+        
+        stopped = true;
         // The make_printable() function helps print a ConstBufferSequence
-        std::cout << beast::make_printable(buffer_.data()) << std::endl;
+        // std::cout << beast::make_printable(buffer_.data()) << std::endl;
     }
 };
+
+
+#endif // WEBSOCKETCLIENT_H

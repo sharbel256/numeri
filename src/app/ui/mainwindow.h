@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QLabel>
+#include <QPushButton>
+#include "websocketclient.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -13,13 +15,26 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(WebSocketClient* client = nullptr, QWidget *parent = nullptr);
     ~MainWindow();
-    
+
+public slots:
+    void updateWithNewData(const QString& data);
+    void runFunction();
 
 private:
     Ui::MainWindow *ui;
-    // Add a label to the main window
+    std::shared_ptr<WebSocketClient> websocket_client;
+
     QLabel *label_2;
+    QPushButton *eth_price;
+    QPushButton *btc_price;
+
+    QPushButton *runButton;
+
+    // The io_context is required for all I/O
+    net::io_context ioc;
+    std::unique_ptr<std::thread> io_thread;
+
 };
 #endif // MAINWINDOW_H
