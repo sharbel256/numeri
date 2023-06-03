@@ -1,10 +1,17 @@
+// TODO: Separate UI and background into different queues
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QMainWindow>
-#include <QLabel>
-#include <QPushButton>
 #include "websocketclient.h"
+#include <iostream>
+#include <string>
+#include <thread>
+#include <QLabel>
+#include <QMainWindow>
+#include <QJsonObject>
+#include <QPushButton>
+#include <QJsonDocument>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,8 +26,9 @@ public:
     ~MainWindow();
 
 public slots:
-    void updateWithNewData(const QString& data);
     void runFunction();
+    void processData(const QString& data);
+    void updatePrice(const QString& price);
 
 private:
     Ui::MainWindow *ui;

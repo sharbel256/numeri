@@ -1,28 +1,23 @@
 // WebSocketClient.h
 
+// TODO: Remove redundant code and use algorithm/client.cpp
+// TODO: Improve thread safety
+
 #ifndef WEBSOCKETCLIENT_H
 #define WEBSOCKETCLIENT_H
 
+#include <iostream>
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <functional>
 #include <QObject>
 #include <QString>
-
-
-//------------------------------------------------------------------------------
-// 
-// WebSocket SSL client, asynchronous
-//
-//------------------------------------------------------------------------------
-
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/asio/strand.hpp>
-#include <cstdlib>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <string>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -46,8 +41,6 @@ signals:
     void newDataReceived(const QString& data);
 
 private:
-    // your websocket handling code
-    // when new data arrives, emit newDataReceived(data)
     tcp::resolver resolver_;
     websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws_;
     beast::flat_buffer buffer_;
@@ -59,9 +52,6 @@ volatile bool stopped = false;
     ~WebSocketClient() {
         std::cout << "WebSocketClient::~WebSocketClient()" << std::endl;
         std::cout << "TODO: close websocket connection" << std::endl;
-    }
-    void connectToServer() {
-
     }
 
     // Resolver and socket require an io_context
@@ -77,7 +67,6 @@ volatile bool stopped = false;
         // Close the WebSocket connection
         ws_.async_close(websocket::close_code::normal,
         beast::bind_front_handler(&WebSocketClient::on_close,shared_from_this()));
-        std::cout << "WebSocketClient::close() after async_close()" << std::endl;
     }
 
     // Start the asynchronous operation
@@ -90,7 +79,6 @@ volatile bool stopped = false;
         // Look up the domain name
         resolver_.async_resolve(host,port,
             beast::bind_front_handler(&WebSocketClient::on_resolve,shared_from_this()));
-        std::cout << "WebSocketClient::run() after async_resolve()" << std::endl;
     }
 
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
