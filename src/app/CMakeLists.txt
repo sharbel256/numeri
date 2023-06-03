@@ -7,7 +7,7 @@ add_executable(main
 )
 
 target_link_libraries(main 
+    Qt6::Widgets
     algorithm_lib
     ui
-    Qt6::Widgets
 )
