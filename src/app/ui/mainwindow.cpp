@@ -9,7 +9,6 @@ MainWindow::MainWindow(WebSocketClient* client, QWidget *parent)
     std::cout << "MainWindow::MainWindow()" << std::endl;
 
     ui->setupUi(this);
-
     connect(ui->runButton, &QPushButton::clicked, this, &MainWindow::runFunction);
 }
 
@@ -42,22 +41,26 @@ void MainWindow::runFunction()
     std::cout << "MainWindow::runFunction()" << std::endl;
     auto host = "ws-feed.exchange.coinbase.com";
     auto port = "443";
-    auto text = R"({"type": "subscribe","channels": [{"name": "ticker", "product_ids": ["BTC-USD"]}]})";
-
-    // The SSL context is required, and holds certificates
-    ssl::context ctx{ssl::context::tlsv13_client};
-    ctx.set_default_verify_paths();
-
-    websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
-
-    connect(websocket_client.get(), &WebSocketClient::newDataReceived, this, &MainWindow::processData);
+    auto text = R"({"type": "subscribe","channels": ["ticker_batch"], "product_ids": ["BTC-USD", "ETH-USD"]})";
 
     try {
+        // The SSL context is required, and holds certificates
+        ssl::context ctx{ssl::context::tlsv13_client};
+        ctx.set_default_verify_paths();
+
+        websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
+
+        connect(websocket_client.get(), &WebSocketClient::newDataReceived, this, &MainWindow::processData);
+
         websocket_client->run(host, port, text);
         io_thread = std::make_unique<std::thread>([this](){ ioc.run(); });
+
+        ui->runButton->setText("stop");
+
     } catch (std::exception const& e) {
         std::cerr << "Error: " << e.what() << std::endl;
-    }   
+    }
+    
 }
 
 void MainWindow::processData(const QString& data)
@@ -76,11 +79,34 @@ void MainWindow::processData(const QString& data)
 
     // Now you can access values from the JSON object, for example:
     QString price = json["price"].toString();
+    QString volume = json["volume_24h"].toString();
+    QString time = json["time"].toString();
 
-    updatePrice(price);
+    double price_d, volume_d;
+
+    price_d = price.toDouble();
+    volume_d = volume.toDouble();
+
+    price = QString::number(price_d, 'f', 1);
+    volume = QString::number(volume_d, 'f', 1);
+
+    if (json["product_id"].toString() == "BTC-USD") {
+        updateBtc(price, volume, time);
+    } else if (json["product_id"].toString() == "ETH-USD") {
+        updateEth(price, volume, time);
+    }
 }
 
-void MainWindow::updatePrice(const QString& price)
+void MainWindow::updateBtc(const QString& price, const QString& volume, const QString& time)
 {
     ui->btc_price->setText(price);
+    ui->btc_volume->setText(volume);
+    ui->btc_time->setText(time);
+}
+
+void MainWindow::updateEth(const QString& price, const QString& volume, const QString& time)
+{
+    ui->eth_price->setText(price);
+    ui->eth_volume->setText(volume);
+    ui->eth_time->setText(time);
 }

@@ -28,15 +28,23 @@ public:
 public slots:
     void runFunction();
     void processData(const QString& data);
-    void updatePrice(const QString& price);
+    void updateBtc(const QString& price, const QString& volume, const QString& time);
+    void updateEth(const QString& price, const QString& volume, const QString& time);
 
 private:
     Ui::MainWindow *ui;
     std::shared_ptr<WebSocketClient> websocket_client;
 
     QLabel *label_2;
-    QPushButton *eth_price;
     QPushButton *btc_price;
+    QPushButton *eth_price;
+
+    QPushButton *btc_volume;
+    QPushButton *eth_volume;
+
+    QLabel *btc_time;
+    QLabel *eth_time;
+
 
     QPushButton *runButton;
 
