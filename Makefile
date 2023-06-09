@@ -36,7 +36,7 @@ clean: clean-debug
 
 .PHONY : clean-debug
 clean-debug:
-	rm -rf build/debug
+	rm -rf build
 
 
 .PHONY : debug
