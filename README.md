@@ -7,3 +7,4 @@ REST is implemented but I'm currently working on FIX API for a paved road approa
 - [CMake](https://cmake.org/)
 - [Boost](https://www.boost.org/)
 - [Qt](https://www.qt.io/)
+- [Coinbase](https://docs.cloud.coinbase.com/exchange/docs/welcome/)
