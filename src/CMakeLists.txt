@@ -17,5 +17,5 @@ message(STATUS "${CMAKE_PROJECT_NAME} version: ${PROJECT_VERSION}")
 
 find_package(Qt6 CONFIG COMPONENTS Widgets REQUIRED)
 
-add_subdirectory(algorithm)
 add_subdirectory(app)
+add_subdirectory(service)

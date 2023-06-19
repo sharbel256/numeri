@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-MainWindow::MainWindow(WebSocketClient* client, QWidget *parent)
+MainWindow::MainWindow(session* client, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , io_thread(nullptr)
@@ -26,7 +26,6 @@ MainWindow::~MainWindow()
     ioc.stop();
     if (io_thread && io_thread->joinable()) {
         io_thread->join();
-        
     }
 
     delete ui;
@@ -34,10 +33,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::runFunction()
 {
-    // TODO: Remove hardcoded values
-    // TODO: Add error handling
-    // TODO: Add a stop button or handle multiple invocation of runFunction()
-    // TODO: Let the user decide host, port, and subscription
+    // @TODO: Remove hardcoded values
+    // @TODO: Add error handling
+    // @TODO: Add a stop button or handle multiple invocations of runFunction()
+    // @TODO: Let the user decide host, port, and subscription
     std::cout << "MainWindow::runFunction()" << std::endl;
     auto host = "ws-feed.exchange.coinbase.com";
     auto port = "443";
@@ -48,25 +47,23 @@ void MainWindow::runFunction()
         ssl::context ctx{ssl::context::tlsv13_client};
         ctx.set_default_verify_paths();
 
-        websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
+        websocket_client = std::make_shared<session>(ioc, ctx);
 
-        connect(websocket_client.get(), &WebSocketClient::newDataReceived, this, &MainWindow::processData);
+        websocket_client->setOnReadCallback([this](const std::string& data) {
+            processData(QString::fromStdString(data));
+        });
 
         websocket_client->run(host, port, text);
         io_thread = std::make_unique<std::thread>([this](){ ioc.run(); });
 
-        ui->runButton->setText("stop");
-
     } catch (std::exception const& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
-    
 }
 
 void MainWindow::processData(const QString& data)
 {
-    // TODO: create async data processing
-    std::cout << "MainWindow::processData()" << std::endl;
+    // @TODO: create async data processing
 
     // Convert the QString to QByteArray
     QByteArray jsonBytes = data.toUtf8();
