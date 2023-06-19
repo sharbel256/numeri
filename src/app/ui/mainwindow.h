@@ -3,7 +3,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "websocketclient.h"
+#include "websocketclient.cpp"
 #include <iostream>
 #include <string>
 #include <thread>
@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QPushButton>
 #include <QJsonDocument>
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -22,7 +23,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(WebSocketClient* client = nullptr, QWidget *parent = nullptr);
+    MainWindow(session* client = nullptr, QWidget *parent = nullptr);
     ~MainWindow();
 
 public slots:
@@ -33,24 +34,18 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
-    std::shared_ptr<WebSocketClient> websocket_client;
-
-    QLabel *label_2;
-    QPushButton *btc_price;
-    QPushButton *eth_price;
-
-    QPushButton *btc_volume;
-    QPushButton *eth_volume;
-
-    QLabel *btc_time;
-    QLabel *eth_time;
-
-
-    QPushButton *runButton;
+    QLabel         *btc_time;
+    QLabel         *eth_time;
+    QPushButton    *btc_price;
+    QPushButton    *eth_price;
+    QPushButton    *btc_volume;
+    QPushButton    *eth_volume;
+    QPushButton    *runButton;
 
     // The io_context is required for all I/O
     net::io_context ioc;
     std::unique_ptr<std::thread> io_thread;
 
+    std::shared_ptr<session> websocket_client;
 };
 #endif // MAINWINDOW_H
