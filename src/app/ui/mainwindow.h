@@ -3,7 +3,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "websocketclient.cpp"
+#include "websocketclient.h"
 #include <iostream>
 #include <string>
 #include <thread>

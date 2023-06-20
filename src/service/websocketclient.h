@@ -4,6 +4,10 @@
 //
 //------------------------------------------------------------------------------
 
+
+#ifndef WEBSOCKETCLIENT_H
+#define WEBSOCKETCLIENT_H
+
 #include <cstdlib>
 #include <string>
 #include <memory>
@@ -43,6 +47,7 @@ public:
     void on_ssl_handshake(beast::error_code ec);
     void on_handshake(beast::error_code ec);
     void on_read(beast::error_code ec,std::size_t bytes_transferred);
+    void on_write(beast::error_code ec, std::size_t bytes_transferred);
     void on_close(beast::error_code ec);
     void setReadCallback(ReadCallback callback);
     
@@ -56,3 +61,5 @@ private:
 
     ReadCallback onReadCallback;
 };
+
+#endif // WEBSOCKETCLIENT_H

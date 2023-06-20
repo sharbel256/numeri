@@ -49,7 +49,7 @@ void MainWindow::runFunction()
 
         websocket_client = std::make_shared<session>(ioc, ctx);
 
-        websocket_client->setOnReadCallback([this](const std::string& data) {
+        websocket_client->setReadCallback([this](const std::string& data) {
             processData(QString::fromStdString(data));
         });
 

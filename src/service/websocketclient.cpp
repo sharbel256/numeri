@@ -2,7 +2,7 @@
 
 
 // Resolver and socket require an io_context
-explicit session::session(net::io_context& ioc, ssl::context& ctx)
+session::session(net::io_context& ioc, ssl::context& ctx)
     : resolver_(net::make_strand(ioc))
     , ws_(net::make_strand(ioc), ctx)
 {}
