@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-MainWindow::MainWindow(session* client, QWidget *parent)
+MainWindow::MainWindow(WebSocketClient* client, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , io_thread(nullptr)
@@ -47,7 +47,7 @@ void MainWindow::runFunction()
         ssl::context ctx{ssl::context::tlsv13_client};
         ctx.set_default_verify_paths();
 
-        websocket_client = std::make_shared<session>(ioc, ctx);
+        websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
 
         websocket_client->setReadCallback([this](const std::string& data) {
             processData(QString::fromStdString(data));

@@ -23,7 +23,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(session* client = nullptr, QWidget *parent = nullptr);
+    MainWindow(WebSocketClient* client = nullptr, QWidget *parent = nullptr);
     ~MainWindow();
 
 public slots:
@@ -46,6 +46,6 @@ private:
     net::io_context ioc;
     std::unique_ptr<std::thread> io_thread;
 
-    std::shared_ptr<session> websocket_client;
+    std::shared_ptr<WebSocketClient> websocket_client;
 };
 #endif // MAINWINDOW_H

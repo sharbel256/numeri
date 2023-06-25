@@ -31,13 +31,13 @@ inline void fail(beast::error_code ec, char const* what) {
     std::cerr << what << ": " << ec.message() << "\n";
 }
 
-class session : public std::enable_shared_from_this<session> {
+class WebSocketClient : public std::enable_shared_from_this<WebSocketClient> {
 
 using ReadCallback = std::function<void(const std::string&)>;
     
 public:
-    explicit session(net::io_context& ioc, ssl::context& ctx);
-    ~session();
+    explicit WebSocketClient(net::io_context& ioc, ssl::context& ctx);
+    ~WebSocketClient();
 
     void run(char const* host, char const* port, char const* text);
     void close();

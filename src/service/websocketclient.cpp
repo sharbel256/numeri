@@ -2,40 +2,40 @@
 
 
 // Resolver and socket require an io_context
-session::session(net::io_context& ioc, ssl::context& ctx)
+WebSocketClient::WebSocketClient(net::io_context& ioc, ssl::context& ctx)
     : resolver_(net::make_strand(ioc))
     , ws_(net::make_strand(ioc), ctx)
 {}
 
-session::~session() {
-    // @TODO: must implement proper session closure
-    std::cout << "TODO: session::~session()" << std::endl;
+WebSocketClient::~WebSocketClient() {
+    // @TODO: must implement proper WebSocketClient closure
+    std::cout << "TODO: WebSocketClient::~WebSocketClient()" << std::endl;
 }
 
 // Start the asynchronous operation
-void session::run(char const* host, char const* port, char const* text) {
+void WebSocketClient::run(char const* host, char const* port, char const* text) {
     // Save these for later
     host_ = host;
     text_ = text;
 
     if (!onReadCallback) {
-        std::cout << "session::run() onReadCallback is not set, returning. " << std::endl;
+        std::cout << "WebSocketClient::run() onReadCallback is not set, returning. " << std::endl;
         return;
     }
 
     // Look up the domain name
     resolver_.async_resolve(host,port,
-        beast::bind_front_handler(&session::on_resolve,shared_from_this()));
+        beast::bind_front_handler(&WebSocketClient::on_resolve,shared_from_this()));
 }
 
-void session::close() {
-    std::cout << "session::close()" << std::endl;
+void WebSocketClient::close() {
+    std::cout << "WebSocketClient::close()" << std::endl;
     
     ws_.async_close(websocket::close_code::normal,
-        beast::bind_front_handler(&session::on_close,shared_from_this()));
+        beast::bind_front_handler(&WebSocketClient::on_close,shared_from_this()));
 }
 
-void session::on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
+void WebSocketClient::on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
     if(ec) return fail(ec, "resolve");
 
     // Set a timeout on the operation
@@ -43,10 +43,10 @@ void session::on_resolve(beast::error_code ec, tcp::resolver::results_type resul
 
     // Make the connection on the IP address we get from a lookup
     beast::get_lowest_layer(ws_).async_connect( results,
-        beast::bind_front_handler(&session::on_connect,shared_from_this()));
+        beast::bind_front_handler(&WebSocketClient::on_connect,shared_from_this()));
 }
 
-void session::on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep) {
+void WebSocketClient::on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep) {
     if(ec) return fail(ec, "connect");
 
     // Set a timeout on the operation
@@ -68,10 +68,10 @@ void session::on_connect(beast::error_code ec, tcp::resolver::results_type::endp
     
     // Perform the SSL handshake
     ws_.next_layer().async_handshake(ssl::stream_base::client,
-        beast::bind_front_handler(&session::on_ssl_handshake,shared_from_this()));
+        beast::bind_front_handler(&WebSocketClient::on_ssl_handshake,shared_from_this()));
 }
 
-void session::on_ssl_handshake(beast::error_code ec) {
+void WebSocketClient::on_ssl_handshake(beast::error_code ec) {
     if(ec) return fail(ec, "ssl_handshake");
 
     // Turn off the timeout on the tcp_stream, because
@@ -93,28 +93,28 @@ void session::on_ssl_handshake(beast::error_code ec) {
 
     // Perform the websocket handshake
     ws_.async_handshake(host_, "/",
-        beast::bind_front_handler(&session::on_handshake,shared_from_this()));
+        beast::bind_front_handler(&WebSocketClient::on_handshake,shared_from_this()));
 }
 
-void session::on_handshake(beast::error_code ec) {
+void WebSocketClient::on_handshake(beast::error_code ec) {
     if(ec) return fail(ec, "handshake");
 
     // Send the message
     ws_.async_write( net::buffer(text_), 
-            beast::bind_front_handler(&session::on_write,shared_from_this()));
+            beast::bind_front_handler(&WebSocketClient::on_write,shared_from_this()));
 }
 
-void session::on_write(beast::error_code ec, std::size_t bytes_transferred) {
+void WebSocketClient::on_write(beast::error_code ec, std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
 
     if(ec) return fail(ec, "write");
 
     // Read a message into our buffer
     ws_.async_read(buffer_,
-        beast::bind_front_handler(&session::on_read,shared_from_this()));
+        beast::bind_front_handler(&WebSocketClient::on_read,shared_from_this()));
 }
 
-void session::on_read(beast::error_code ec,std::size_t bytes_transferred) {
+void WebSocketClient::on_read(beast::error_code ec,std::size_t bytes_transferred) {
     boost::ignore_unused(bytes_transferred);
 
     if(ec) return fail(ec, "read");
@@ -128,18 +128,18 @@ void session::on_read(beast::error_code ec,std::size_t bytes_transferred) {
 
     // Read a single message into our buffer
     ws_.async_read(buffer_,
-        beast::bind_front_handler(&session::on_read,shared_from_this()));
+        beast::bind_front_handler(&WebSocketClient::on_read,shared_from_this()));
 }
 
-void session::on_close(beast::error_code ec) {
+void WebSocketClient::on_close(beast::error_code ec) {
     if(ec) return fail(ec, "close");
 
     stopped = true;
 
     // If we get here then the connection is closed gracefully
-    std::cout << "session::on_close()" << std::endl;
+    std::cout << "WebSocketClient::on_close()" << std::endl;
 }
 
-void session::setReadCallback(ReadCallback callback) {
+void WebSocketClient::setReadCallback(ReadCallback callback) {
     this->onReadCallback = callback;
 }
