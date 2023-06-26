@@ -6,6 +6,8 @@ include_directories(${Boost_INCLUDE_DIR})
 add_library(service_lib STATIC
   websocketclient.h
   websocketclient.cpp
+  httpclient.h
+  httpclient.cpp
 )
 
 target_link_libraries(service_lib ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
