@@ -27,7 +27,8 @@ public:
     ~MainWindow();
 
 public slots:
-    void runFunction();
+    void liveFunction();
+    void sandboxFunction();
     void processData(const QString& data);
     void updateBtc(const QString& price, const QString& volume, const QString& time);
     void updateEth(const QString& price, const QString& volume, const QString& time);
@@ -40,7 +41,9 @@ private:
     QPushButton    *eth_price;
     QPushButton    *btc_volume;
     QPushButton    *eth_volume;
-    QPushButton    *runButton;
+    QPushButton    *liveButton;
+    QPushButton    *sandboxButton;
+
 
     // The io_context is required for all I/O
     net::io_context ioc;

@@ -545,8 +545,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>248</width>
-                   <height>187</height>
+                   <width>268</width>
+                   <height>237</height>
                   </rect>
                  </property>
                 </widget>
@@ -714,14 +714,14 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="pushButton_3">
+         <widget class="QPushButton" name="sandboxButton">
           <property name="text">
-           <string>Custom</string>
+           <string>Sandbox</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="runButton">
+         <widget class="QPushButton" name="liveButton">
           <property name="text">
            <string>Live</string>
           </property>
@@ -737,8 +737,7 @@
         <item>
          <widget class="QPushButton" name="debug">
           <property name="styleSheet">
-           <string notr="true">
-</string>
+           <string notr="true"/>
           </property>
           <property name="text">
            <string>Debug</string>

@@ -9,7 +9,8 @@ MainWindow::MainWindow(WebSocketClient* client, QWidget *parent)
     std::cout << "MainWindow::MainWindow()" << std::endl;
 
     ui->setupUi(this);
-    connect(ui->runButton, &QPushButton::clicked, this, &MainWindow::runFunction);
+    connect(ui->liveButton, &QPushButton::clicked, this, &MainWindow::liveFunction);
+    connect(ui->sandboxButton, &QPushButton::clicked, this, &MainWindow::sandboxFunction);
 }
 
 MainWindow::~MainWindow()
@@ -31,14 +32,44 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::runFunction()
+void MainWindow::liveFunction()
 {
     // @TODO: Remove hardcoded values
     // @TODO: Add error handling
     // @TODO: Add a stop button or handle multiple invocations of runFunction()
     // @TODO: Let the user decide host, port, and subscription
-    std::cout << "MainWindow::runFunction()" << std::endl;
+    std::cout << "MainWindow::liveFunction()" << std::endl;
     auto host = "ws-feed.exchange.coinbase.com";
+    auto port = "443";
+    auto text = R"({"type": "subscribe","channels": ["ticker_batch"], "product_ids": ["BTC-USD", "ETH-USD"]})";
+
+    try {
+        // The SSL context is required, and holds certificates
+        ssl::context ctx{ssl::context::tlsv13_client};
+        ctx.set_default_verify_paths();
+
+        websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
+
+        websocket_client->setReadCallback([this](const std::string& data) {
+            processData(QString::fromStdString(data));
+        });
+
+        websocket_client->run(host, port, text);
+        io_thread = std::make_unique<std::thread>([this](){ ioc.run(); });
+
+    } catch (std::exception const& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+}
+
+void MainWindow::sandboxFunction()
+{
+    // @TODO: Remove hardcoded values
+    // @TODO: Add error handling
+    // @TODO: Add a stop button or handle multiple invocations of runFunction()
+    // @TODO: Let the user decide host, port, and subscription
+    std::cout << "MainWindow::sandboxFunction()" << std::endl;
+    auto host = "ws-feed-public.sandbox.exchange.coinbase.com";
     auto port = "443";
     auto text = R"({"type": "subscribe","channels": ["ticker_batch"], "product_ids": ["BTC-USD", "ETH-USD"]})";
 
