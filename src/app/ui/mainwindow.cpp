@@ -1,4 +1,6 @@
 #include "mainwindow.h"
+#include <openssl/hmac.h>
+#include <chrono>
 #include "./ui_mainwindow.h"
 
 MainWindow::MainWindow(WebSocketClient* client, QWidget *parent)
@@ -39,9 +41,30 @@ void MainWindow::liveFunction()
     // @TODO: Add a stop button or handle multiple invocations of runFunction()
     // @TODO: Let the user decide host, port, and subscription
     std::cout << "MainWindow::liveFunction()" << std::endl;
-    auto host = "ws-feed.exchange.coinbase.com";
+    auto host = "advanced-trade-ws.coinbase.com";
     auto port = "443";
-    auto text = R"({"type": "subscribe","channels": ["ticker_batch"], "product_ids": ["BTC-USD", "ETH-USD"]})";
+
+    std::string apiKey = std::getenv("COINBASE_API_KEY");
+    std::string secretKey = std::getenv("COINBASE_SECRET_KEY");
+
+    std::string type = "subscribe";
+    std::vector<std::string> product_ids = {"BTC-USD"};
+    std::string channel = "level2";
+    std::string timestamp = getTimestamp();
+
+    std::string message = timestamp + channel + product_ids[0];
+    std::string signature = calculateSignature(message, secretKey); // replace with actual value
+
+    nlohmann::json j;
+    j["type"] = type;
+    j["product_ids"] = product_ids;
+    j["channel"] = channel;
+    j["signature"] = signature;
+    j["api_key"] = apiKey;
+    j["timestamp"] = timestamp;
+
+    auto text = j.dump();
+    std::cout << text << std::endl;
 
     try {
         // The SSL context is required, and holds certificates
@@ -137,4 +160,35 @@ void MainWindow::updateEth(const QString& price, const QString& volume, const QS
     ui->eth_price->setText(price);
     ui->eth_volume->setText(volume);
     ui->eth_time->setText(time);
+}
+
+std::string MainWindow::calculateSignature(const std::string& message, const std::string& secretKey)
+{
+
+    unsigned char hmacResult[EVP_MAX_MD_SIZE];
+    unsigned int hmacLength;
+
+    HMAC(EVP_sha256(), secretKey.c_str(), secretKey.length(),
+         reinterpret_cast<const unsigned char*>(message.c_str()), message.length(), 
+         hmacResult, &hmacLength);
+
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0');
+    for(unsigned int i = 0; i < hmacLength; ++i)
+        ss << std::setw(2) << static_cast<unsigned>(hmacResult[i]);
+
+    return ss.str();
+}
+
+std::string MainWindow::getTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto duration = now.time_since_epoch();
+    auto micros = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+
+    double seconds = micros.count() / 1e6; // Converting microseconds to seconds.
+
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(0) << seconds; // Set precision to 6 decimal places.
+
+    return ss.str();
 }

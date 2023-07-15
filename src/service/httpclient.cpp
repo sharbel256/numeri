@@ -1,5 +1,6 @@
 #include "httpclient.h"
 
+
 HTTPClient::HTTPClient(net::any_io_executor ex,ssl::context& ctx)
     : resolver_(ex)
     , stream_(ex, ctx)
@@ -22,7 +23,7 @@ void HTTPClient::shutdown() {
 }
 
     // Start the asynchronous operation
-void HTTPClient::run(char const* host, char const* port)
+void HTTPClient::run(const char* host, const char* port)
 {
     // Set SNI Hostname (many hosts need this to handshake successfully)
     if(! SSL_set_tlsext_host_name(stream_.native_handle(), host))
@@ -120,4 +121,25 @@ void HTTPClient::on_shutdown(beast::error_code ec) {
     if(ec) return fail(ec, "shutdown");
 
     // If we get here then the connection is closed gracefully
+}
+
+std::string HTTPClient::calculateSignature(const std::string& message, const std::string& secretKey)
+{
+    unsigned char hmacResult[EVP_MAX_MD_SIZE];
+    unsigned int hmacLength;
+
+    HMAC(EVP_sha256(), secretKey.c_str(), secretKey.length(),
+         reinterpret_cast<const unsigned char*>(message.c_str()), message.length(), 
+         hmacResult, &hmacLength);
+
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0');
+    for(unsigned int i = 0; i < hmacLength; ++i)
+        ss << std::setw(2) << static_cast<unsigned>(hmacResult[i]);
+
+    return ss.str();
+}
+
+void HTTPClient::setReadCallback(ReadCallback callback) {
+    this->onReadCallback = callback;
 }

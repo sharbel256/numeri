@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QPushButton>
 #include <QJsonDocument>
+#include <nlohmann/json.hpp>
 
 
 QT_BEGIN_NAMESPACE
@@ -32,6 +33,8 @@ public slots:
     void processData(const QString& data);
     void updateBtc(const QString& price, const QString& volume, const QString& time);
     void updateEth(const QString& price, const QString& volume, const QString& time);
+    std::string calculateSignature(const std::string& message, const std::string& secretKey);
+    std::string getTimestamp();
 
 private:
     Ui::MainWindow *ui;

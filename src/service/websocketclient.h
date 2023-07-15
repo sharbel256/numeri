@@ -39,7 +39,7 @@ public:
     explicit WebSocketClient(net::io_context& ioc, ssl::context& ctx);
     ~WebSocketClient();
 
-    void run(char const* host, char const* port, char const* text);
+    void run(std::string host, std::string port, std::string text);
     void close();
 
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results);

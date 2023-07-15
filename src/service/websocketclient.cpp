@@ -13,7 +13,7 @@ WebSocketClient::~WebSocketClient() {
 }
 
 // Start the asynchronous operation
-void WebSocketClient::run(char const* host, char const* port, char const* text) {
+void WebSocketClient::run(std::string host, std::string port, std::string text) {
     // Save these for later
     host_ = host;
     text_ = text;
