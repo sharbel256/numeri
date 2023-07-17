@@ -8,6 +8,7 @@ add_library(service_lib STATIC
   websocketclient.cpp
   httpclient.h
   httpclient.cpp
+  logging.h
 )
 
 target_link_libraries(service_lib ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})

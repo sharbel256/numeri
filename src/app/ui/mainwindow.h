@@ -4,6 +4,7 @@
 #define MAINWINDOW_H
 
 #include "websocketclient.h"
+#include "httpclient.h"
 #include <iostream>
 #include <string>
 #include <thread>
@@ -30,6 +31,7 @@ public:
 public slots:
     void liveFunction();
     void sandboxFunction();
+    void loginFunction();
     void processData(const QString& data);
     void updateBtc(const QString& price, const QString& volume, const QString& time);
     void updateEth(const QString& price, const QString& volume, const QString& time);
@@ -46,12 +48,17 @@ private:
     QPushButton    *eth_volume;
     QPushButton    *liveButton;
     QPushButton    *sandboxButton;
+    QPushButton    *loginButton;
 
 
     // The io_context is required for all I/O
-    net::io_context ioc;
-    std::unique_ptr<std::thread> io_thread;
+    net::io_context ws_ioc;
+    net::io_context http_ioc;
+    
+    std::unique_ptr<std::thread> ws_io_thread;
+    std::unique_ptr<std::thread> http_io_thread;
 
     std::shared_ptr<WebSocketClient> websocket_client;
+    std::shared_ptr<HTTPClient> http_client;
 };
 #endif // MAINWINDOW_H

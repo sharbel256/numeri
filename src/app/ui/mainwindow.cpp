@@ -6,13 +6,15 @@
 MainWindow::MainWindow(WebSocketClient* client, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , io_thread(nullptr)
+    , ws_io_thread(nullptr)
+    , http_io_thread(nullptr)
 {
     std::cout << "MainWindow::MainWindow()" << std::endl;
 
     ui->setupUi(this);
     connect(ui->liveButton, &QPushButton::clicked, this, &MainWindow::liveFunction);
     connect(ui->sandboxButton, &QPushButton::clicked, this, &MainWindow::sandboxFunction);
+    connect(ui->loginButton, &QPushButton::clicked, this, &MainWindow::loginFunction);
 }
 
 MainWindow::~MainWindow()
@@ -23,15 +25,49 @@ MainWindow::~MainWindow()
         websocket_client->close();
     }
 
-    while (!websocket_client->stopped) {}
+    if (http_client) {
+        http_client->shutdown();
+    }
 
-    while (ioc.poll()) {}
-    ioc.stop();
-    if (io_thread && io_thread->joinable()) {
-        io_thread->join();
+    while (!websocket_client->stopped) {} 
+    // add while loop for wait for http_client as well.
+
+    while (ws_ioc.poll()) {}
+    ws_ioc.stop();
+    if (ws_io_thread && ws_io_thread->joinable()) {
+        ws_io_thread->join();
+    }
+
+    while (http_ioc.poll()) {}
+    if (http_io_thread && http_io_thread->joinable()) {
+        http_io_thread->join();
     }
 
     delete ui;
+}
+
+void MainWindow::loginFunction()
+{
+    auto host = "api.coinbase.com";
+    auto port = "https";
+
+    try {
+        // The SSL context is required, and holds certificates
+        ssl::context ctx{ssl::context::tlsv13_client};
+        ctx.set_default_verify_paths();
+
+        http_client = std::make_shared<HTTPClient>(net::make_strand(http_ioc), ctx);
+
+        http_client->setReadCallback([this](const std::string& data) {
+            processData(QString::fromStdString(data));
+        });
+
+        http_client->run(host, port);
+        http_io_thread = std::make_unique<std::thread>([this](){ http_ioc.run(); });
+
+    } catch (std::exception const& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
 }
 
 void MainWindow::liveFunction()
@@ -53,7 +89,7 @@ void MainWindow::liveFunction()
     std::string timestamp = getTimestamp();
 
     std::string message = timestamp + channel + product_ids[0];
-    std::string signature = calculateSignature(message, secretKey); // replace with actual value
+    std::string signature = calculateSignature(message, secretKey);
 
     nlohmann::json j;
     j["type"] = type;
@@ -71,14 +107,14 @@ void MainWindow::liveFunction()
         ssl::context ctx{ssl::context::tlsv13_client};
         ctx.set_default_verify_paths();
 
-        websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
+        websocket_client = std::make_shared<WebSocketClient>(ws_ioc, ctx);
 
         websocket_client->setReadCallback([this](const std::string& data) {
             processData(QString::fromStdString(data));
         });
 
         websocket_client->run(host, port, text);
-        io_thread = std::make_unique<std::thread>([this](){ ioc.run(); });
+        ws_io_thread = std::make_unique<std::thread>([this](){ ws_ioc.run(); });
 
     } catch (std::exception const& e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -101,14 +137,14 @@ void MainWindow::sandboxFunction()
         ssl::context ctx{ssl::context::tlsv13_client};
         ctx.set_default_verify_paths();
 
-        websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
+        websocket_client = std::make_shared<WebSocketClient>(ws_ioc, ctx);
 
         websocket_client->setReadCallback([this](const std::string& data) {
             processData(QString::fromStdString(data));
         });
 
         websocket_client->run(host, port, text);
-        io_thread = std::make_unique<std::thread>([this](){ ioc.run(); });
+        ws_io_thread = std::make_unique<std::thread>([this](){ ws_ioc.run(); });
 
     } catch (std::exception const& e) {
         std::cerr << "Error: " << e.what() << std::endl;

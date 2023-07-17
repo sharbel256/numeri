@@ -18,6 +18,7 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/asio/strand.hpp>
+#include "logging.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -26,10 +27,14 @@ namespace net = boost::asio;            // from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-// Report a failure
-inline void fail(beast::error_code ec, char const* what) {
-    std::cerr << what << ": " << ec.message() << "\n";
-}
+// // Report a failure
+// #ifndef FAIL_FUNC
+// #define FAIL_FUNC
+// void fail(beast::error_code ec, char const* what)
+// {
+//     std::cerr << what << ": " << ec.message() << "\n";
+// }
+// #endif
 
 class WebSocketClient : public std::enable_shared_from_this<WebSocketClient> {
 

@@ -18,7 +18,7 @@
 #include <memory>
 #include <string>
 #include <iomanip>
-
+#include "logging.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -28,11 +28,14 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 //------------------------------------------------------------------------------
 
-// Report a failure
-void fail(beast::error_code ec, char const* what)
-{
-    std::cerr << what << ": " << ec.message() << "\n";
-}
+// // Report a failure
+// #ifndef FAIL_FUNC
+// #define FAIL_FUNC
+// void fail(beast::error_code ec, char const* what)
+// {
+//     std::cerr << what << ": " << ec.message() << "\n";
+// }
+// #endif
 
 // Performs an HTTP GET and prints the response
 class HTTPClient : public std::enable_shared_from_this<HTTPClient> {

@@ -22,7 +22,7 @@ void HTTPClient::shutdown() {
     // if(ec && ec != beast::errc::not_connected) return fail(ec, "shutdown");
 }
 
-    // Start the asynchronous operation
+// Start the asynchronous operation
 void HTTPClient::run(const char* host, const char* port)
 {
     // Set SNI Hostname (many hosts need this to handshake successfully)
@@ -34,7 +34,7 @@ void HTTPClient::run(const char* host, const char* port)
     }
 
     std::string method = "GET";
-    std::string requestPath = "/v2/user";
+    std::string requestPath = "/api/v3/brokerage/accounts";
     std::string body = "";
 
     // Load your API key, signature, and timestamp into variables
@@ -49,7 +49,7 @@ void HTTPClient::run(const char* host, const char* port)
     std::string signature = calculateSignature(message, secretKey);
 
     req_.method(http::verb::get);
-    req_.target("/v2/user");
+    req_.target("/api/v3/brokerage/accounts");
     req_.version(11); // HTTP/1.1
     req_.set(http::field::host, "api.coinbase.com");
     req_.set(http::field::content_type, "application/json");
