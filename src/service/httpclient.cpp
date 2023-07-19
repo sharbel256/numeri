@@ -121,6 +121,7 @@ void HTTPClient::on_shutdown(beast::error_code ec) {
     if(ec) return fail(ec, "shutdown");
 
     // If we get here then the connection is closed gracefully
+    stopped = true;
 }
 
 std::string HTTPClient::calculateSignature(const std::string& message, const std::string& secretKey)

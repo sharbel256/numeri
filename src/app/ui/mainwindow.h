@@ -29,9 +29,10 @@ public:
     ~MainWindow();
 
 public slots:
+    void onStartup();
     void liveFunction();
     void sandboxFunction();
-    void loginFunction();
+    void login();
     void processData(const QString& data);
     void updateBtc(const QString& price, const QString& volume, const QString& time);
     void updateEth(const QString& price, const QString& volume, const QString& time);
@@ -48,13 +49,18 @@ private:
     QPushButton    *eth_volume;
     QPushButton    *liveButton;
     QPushButton    *sandboxButton;
-    QPushButton    *loginButton;
+
+    QPushButton    *cash_button;
+    QPushButton    *btc_wallet_button;
+    QPushButton    *eth_wallet_button;
+
+    // QPushButton    *loginButton;
 
 
     // The io_context is required for all I/O
     net::io_context ws_ioc;
     net::io_context http_ioc;
-    
+
     std::unique_ptr<std::thread> ws_io_thread;
     std::unique_ptr<std::thread> http_io_thread;
 

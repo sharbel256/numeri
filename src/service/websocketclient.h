@@ -27,14 +27,6 @@ namespace net = boost::asio;            // from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
-// // Report a failure
-// #ifndef FAIL_FUNC
-// #define FAIL_FUNC
-// void fail(beast::error_code ec, char const* what)
-// {
-//     std::cerr << what << ": " << ec.message() << "\n";
-// }
-// #endif
 
 class WebSocketClient : public std::enable_shared_from_this<WebSocketClient> {
 

@@ -9,16 +9,16 @@ MainWindow::MainWindow(WebSocketClient* client, QWidget *parent)
     , ws_io_thread(nullptr)
     , http_io_thread(nullptr)
 {
-    std::cout << "MainWindow::MainWindow()" << std::endl;
-
     ui->setupUi(this);
+    
     connect(ui->liveButton, &QPushButton::clicked, this, &MainWindow::liveFunction);
     connect(ui->sandboxButton, &QPushButton::clicked, this, &MainWindow::sandboxFunction);
-    connect(ui->loginButton, &QPushButton::clicked, this, &MainWindow::loginFunction);
+
+    onStartup();
 }
 
 MainWindow::~MainWindow()
-{   
+{
     std::cout << "MainWindow::~MainWindow()" << std::endl;
 
     if (websocket_client) {
@@ -30,7 +30,7 @@ MainWindow::~MainWindow()
     }
 
     while (!websocket_client->stopped) {} 
-    // add while loop for wait for http_client as well.
+    while (!http_client->stopped) {} 
 
     while (ws_ioc.poll()) {}
     ws_ioc.stop();
@@ -39,6 +39,7 @@ MainWindow::~MainWindow()
     }
 
     while (http_ioc.poll()) {}
+    http_ioc.stop();
     if (http_io_thread && http_io_thread->joinable()) {
         http_io_thread->join();
     }
@@ -46,7 +47,18 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::loginFunction()
+void MainWindow::onStartup()
+{
+    std::cout << "MainWindow::onStartup()" << std::endl;
+    login();
+
+    // 2. get accounts
+    // 3. get & display balances
+    // 4. get & display orders
+    // 5. update local database
+}
+
+void MainWindow::login()
 {
     auto host = "api.coinbase.com";
     auto port = "https";

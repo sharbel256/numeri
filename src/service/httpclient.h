@@ -28,15 +28,6 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 //------------------------------------------------------------------------------
 
-// // Report a failure
-// #ifndef FAIL_FUNC
-// #define FAIL_FUNC
-// void fail(beast::error_code ec, char const* what)
-// {
-//     std::cerr << what << ": " << ec.message() << "\n";
-// }
-// #endif
-
 // Performs an HTTP GET and prints the response
 class HTTPClient : public std::enable_shared_from_this<HTTPClient> {
 
@@ -57,6 +48,8 @@ public:
     void on_shutdown(beast::error_code ec);
     void setReadCallback(ReadCallback callback);
     std::string calculateSignature(const std::string& message, const std::string& secretKey);
+
+    volatile bool stopped = false;
 
 private:
     std::string host_;

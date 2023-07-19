@@ -424,59 +424,87 @@
               </item>
               <item>
                <layout class="QGridLayout" name="gridLayout_4">
-                <item row="0" column="1">
-                 <widget class="QPushButton" name="pushButton_6">
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="1">
+                <item row="3" column="1">
                  <widget class="QPushButton" name="pushButton_7">
                   <property name="text">
                    <string/>
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="0">
-                 <widget class="QLabel" name="label_24">
-                  <property name="text">
-                   <string>Cash</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="2" column="0">
-                 <widget class="QLabel" name="label_26">
-                  <property name="text">
-                   <string>Realized</string>
-                  </property>
-                 </widget>
-                </item>
                 <item row="1" column="0">
-                 <widget class="QLabel" name="label_25">
+                 <widget class="QLabel" name="btc_wallet">
                   <property name="text">
-                   <string>Unrealized</string>
+                   <string>BTC Wallet</string>
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="0">
-                 <widget class="QLabel" name="label_27">
-                  <property name="text">
-                   <string>Taxable</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="2" column="1">
+                <item row="4" column="1">
                  <widget class="QPushButton" name="pushButton_11">
                   <property name="text">
                    <string/>
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="1">
+                <item row="0" column="1">
+                 <widget class="QPushButton" name="cash_button">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="4" column="0">
+                 <widget class="QLabel" name="label_26">
+                  <property name="text">
+                   <string>Realized</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QPushButton" name="btc_wallet_button">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="0">
+                 <widget class="QLabel" name="label_27">
+                  <property name="text">
+                   <string>Taxable</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="0">
+                 <widget class="QLabel" name="label_25">
+                  <property name="text">
+                   <string>Unrealized</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="5" column="1">
                  <widget class="QPushButton" name="pushButton_25">
                   <property name="text">
                    <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="cash_wallet">
+                  <property name="text">
+                   <string>Cash</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="1">
+                 <widget class="QPushButton" name="eth_wallet_button">
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="2" column="0">
+                 <widget class="QLabel" name="eth_wallet">
+                  <property name="text">
+                   <string>ETH Wallet</string>
                   </property>
                  </widget>
                 </item>
@@ -536,7 +564,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QScrollArea" name="scrollArea">
+               <widget class="QScrollArea" name="scroll_area">
                 <property name="widgetResizable">
                  <bool>true</bool>
                 </property>
