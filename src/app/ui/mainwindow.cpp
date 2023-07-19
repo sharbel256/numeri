@@ -60,6 +60,7 @@ void MainWindow::onStartup()
 
 void MainWindow::login()
 {
+    ui->list_widget->insertItem(0, "logging in...");
     auto host = "api.coinbase.com";
     auto port = "https";
 
@@ -71,7 +72,8 @@ void MainWindow::login()
         http_client = std::make_shared<HTTPClient>(net::make_strand(http_ioc), ctx);
 
         http_client->setReadCallback([this](const std::string& data) {
-            processData(QString::fromStdString(data));
+            ui->list_widget->insertItem(0, "reading http response");
+            processLoginData(QString::fromStdString(data));
         });
 
         http_client->run(host, port);
@@ -80,6 +82,22 @@ void MainWindow::login()
     } catch (std::exception const& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
+}
+
+void MainWindow::processLoginData(const QString& response)
+{
+    ui->list_widget->insertItem(0, "processing login data");
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(response.toUtf8());
+    QJsonObject jsonObject = jsonResponse.object();
+
+    QJsonArray accountsArray = jsonObject["accounts"].toArray();
+
+    QJsonObject accountObject = accountsArray[1].toObject(); // Accessing the second account (cash)
+    QString currency = accountObject["currency"].toString();
+    QJsonObject balanceObject = accountObject["available_balance"].toObject();
+    QString balance = balanceObject["value"].toString();
+
+    ui->cash_button->setText(balance);
 }
 
 void MainWindow::liveFunction()

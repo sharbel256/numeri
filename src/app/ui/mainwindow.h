@@ -12,7 +12,9 @@
 #include <QMainWindow>
 #include <QJsonObject>
 #include <QPushButton>
+#include <QListWidget>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <nlohmann/json.hpp>
 
 
@@ -34,6 +36,7 @@ public slots:
     void sandboxFunction();
     void login();
     void processData(const QString& data);
+    void processLoginData(const QString& response);
     void updateBtc(const QString& price, const QString& volume, const QString& time);
     void updateEth(const QString& price, const QString& volume, const QString& time);
     std::string calculateSignature(const std::string& message, const std::string& secretKey);
@@ -54,8 +57,7 @@ private:
     QPushButton    *btc_wallet_button;
     QPushButton    *eth_wallet_button;
 
-    // QPushButton    *loginButton;
-
+    QListWidget   *list_widget;
 
     // The io_context is required for all I/O
     net::io_context ws_ioc;

@@ -113,6 +113,10 @@ void HTTPClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
     // Write the message to standard out
     std::cout << res_ << std::endl;
 
+    if (onReadCallback) {
+        onReadCallback(res_.body());
+    }
+
     // Set a timeout on the operation
     beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
 }
