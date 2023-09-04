@@ -21,16 +21,9 @@ MainWindow::~MainWindow()
 {
     std::cout << "MainWindow::~MainWindow()" << std::endl;
 
-    if (websocket_client) {
-        websocket_client->close();
-    }
+    if (websocket_client) websocket_client->close();
 
-    if (http_client) {
-        http_client->shutdown();
-    }
-
-    while (!websocket_client->stopped) {} 
-    while (!http_client->stopped) {} 
+    if (http_client) http_client->shutdown();
 
     while (ws_ioc.poll()) {}
     ws_ioc.stop();
@@ -106,6 +99,8 @@ void MainWindow::liveFunction()
     // @TODO: Add error handling
     // @TODO: Add a stop button or handle multiple invocations of runFunction()
     // @TODO: Let the user decide host, port, and subscription
+    ui->liveButton->setEnabled(false);
+
     std::cout << "MainWindow::liveFunction()" << std::endl;
     auto host = "advanced-trade-ws.coinbase.com";
     auto port = "443";

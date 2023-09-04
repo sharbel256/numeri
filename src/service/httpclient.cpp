@@ -49,9 +49,9 @@ void HTTPClient::run(const char* host, const char* port)
     std::string signature = calculateSignature(message, secretKey);
 
     req_.method(http::verb::get);
-    req_.target("/api/v3/brokerage/accounts");
+    req_.target(requestPath);
     req_.version(11); // HTTP/1.1
-    req_.set(http::field::host, "api.coinbase.com");
+    req_.set(http::field::host, host);
     req_.set(http::field::content_type, "application/json");
     req_.set("CB-ACCESS-KEY", apiKey);
     req_.set("CB-VERSION", "2021-01-09");
