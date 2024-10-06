@@ -6,22 +6,27 @@
 #include <iostream>
 
 namespace readers {
-    void readerThreadFunction(trading::OrderBook& orderBook) {
-        while (true) {
-            // Get the snapshot
-            auto snapshot = orderBook.getSnapshot();
+    void readerThreadFunction(std::shared_ptr<trading::OrderBook> orderBook, std::atomic<bool>& shutdownFlag)
+    {
+        while (!shutdownFlag.load()) {
+            // Get the latest snapshot
+            auto snapshot = orderBook->getSnapshot();
+            if (snapshot) {
+                // latency 
+                auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now() - snapshot->timestamp).count();
 
-            // Measure latency
-            auto now = std::chrono::system_clock::now();
-            auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(now - snapshot->timestamp).count();
+                // Access snapshot data
+                std::cout << "Best Bid: " << snapshot->bestBid
+                        << ", Best Ask: " << snapshot->bestAsk
+                        << ", Spread: " << snapshot->spread 
+                        << ", latency: " << latency << " ms" << std::endl;
 
-            // Optionally, print the metrics and the time difference
-            std::cout << "Best Bid: " << snapshot->bestBid
-                    << ", Best Ask: " << snapshot->bestAsk
-                    << ", Spread: " << snapshot->spread
-                    << ", latency: " << latency << " ms" << std::endl;
+            } else {
+                std::cerr << "Warning: snapshot is null in readerThreadFunction" << std::endl;
+            }
 
-            // Sleep for a specified interval
+            // Sleep for a while before the next read
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }

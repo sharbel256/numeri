@@ -38,7 +38,7 @@ public:
     // ensure that handlers do not execute concurrently.
     explicit HTTPClient(net::any_io_executor ex,ssl::context& ctx);
     ~HTTPClient();
-    void shutdown();
+    void close();
     void run(const char* host, const char* port);
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results);
     void on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type);

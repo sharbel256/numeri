@@ -11,6 +11,7 @@
 #include <cmath>
 #include <atomic>
 #include <iostream>
+#include <thread>
 
 namespace trading {
 
@@ -85,19 +86,49 @@ private:
 
     std::shared_ptr<OrderBookSnapshot> snapshotPtr;
 
+    // New members for snapshot thread
+    std::thread snapshotThread;
+    std::atomic<bool> snapshotThreadRunning;
+    int snapshotIntervalMillis; // Snapshot interval in milliseconds
+    std::mutex bookMutex; // Mutex for thread safety
+
 public:
-    OrderBook() : windowMillis(10000)
+    OrderBook() : windowMillis(5000), snapshotIntervalMillis(1000), snapshotThreadRunning(true)
     {
+        // Initialize snapshotPtr
         std::atomic_store(&snapshotPtr, std::make_shared<OrderBookSnapshot>());
+
+        // Start the snapshot thread
+        snapshotThread = std::thread([this]() {
+            while (snapshotThreadRunning.load()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(snapshotIntervalMillis));
+                createSnapshot();
+            }
+        });
     }
+    ~OrderBook() {
+        stopSnapshotThread();
+    }
+
+    // Delete copy constructor and copy assignment operator
+    OrderBook(const OrderBook&) = delete;
+    OrderBook& operator=(const OrderBook&) = delete;
+
+    // // If necessary, define move constructor and move assignment operator
+    // OrderBook(OrderBook&&) = default;
+    // OrderBook& operator=(OrderBook&&) = default;
+
+
     void update(const OrderBookEntry& entry);
     void removeOldEntries();
     std::vector<OrderBookEntry> getTopLevels(int n, bool isBid) const;
     void setWindowMillis(int millis) { windowMillis = millis; }
 
     // Snapshot mechanism
-    std::shared_ptr<OrderBookSnapshot> getSnapshot() const;
+    std::shared_ptr<OrderBookSnapshot> getSnapshot();
     void createSnapshot();
+    void stopSnapshotThread();
+
 };
 
 } // namespace trading

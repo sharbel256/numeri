@@ -10,6 +10,8 @@ void OrderBook::update(const OrderBookEntry& entry) {
     if (entry.quantity < 0) {
         return;
     }
+    // std::cout << "Updating order book with entry: " << entry.priceLevel << std::endl;
+    std::lock_guard<std::mutex> lock(bookMutex);
 
     auto& book = (entry.side == "bid") ? bids : asks;
 
@@ -23,7 +25,6 @@ void OrderBook::update(const OrderBookEntry& entry) {
     }
 
     removeOldEntries();
-    // createSnapshot();
 }
 
 void OrderBook::removeOldEntries() {
@@ -78,6 +79,8 @@ std::vector<OrderBookEntry> OrderBook::getTopLevels(int n, bool isBid) const {
 }
 
 void OrderBook::createSnapshot() {
+    std::lock_guard<std::mutex> lock(bookMutex);
+
     // Create a deep copy of the current bids and asks
     auto snapshot = std::make_shared<OrderBookSnapshot>(bids, asks);
 
@@ -85,8 +88,24 @@ void OrderBook::createSnapshot() {
     std::atomic_store(&snapshotPtr, snapshot);
 }
 
-std::shared_ptr<OrderBookSnapshot> OrderBook::getSnapshot() const {
-    snapshotPtr->updateMetrics();
-    return std::atomic_load(&snapshotPtr);
+std::shared_ptr<OrderBookSnapshot> OrderBook::getSnapshot() {
+    auto snapshot = std::atomic_load(&snapshotPtr);
+    if (snapshot) {
+        snapshot->updateMetrics();
+        return snapshot;
+    } else {
+        // Handle the case when snapshotPtr is null
+        std::cerr << "Error: snapshotPtr is null in getSnapshot()" << std::endl;
+        // You can choose to return a default snapshot or handle it appropriately
+        return nullptr;
+    }
+}
+
+void OrderBook::stopSnapshotThread()
+{
+    snapshotThreadRunning = false;
+    if (snapshotThread.joinable()) {
+        snapshotThread.join();
+    }
 }
 } // namespace trading

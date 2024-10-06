@@ -6,12 +6,16 @@
 #include <string>
 #include <thread>
 #include <nlohmann/json.hpp>
+#include <atomic>
+#include <mutex>
 
 using json = nlohmann::json;
 using namespace std;
 
 class Trading {
   private:
+    std::atomic<bool>& shutdownFlag;
+    net::io_context& ioc;
     net::io_context ws_ioc;
     net::io_context http_ioc;
 
@@ -21,14 +25,18 @@ class Trading {
     std::shared_ptr<WebSocketClient> websocket_client;
     std::shared_ptr<HTTPClient> http_client;
 
-    std::map<std::string, trading::OrderBook> orderBooks;
+    std::map<std::string, std::shared_ptr<trading::OrderBook>> orderBooks;
+
+    
   public:
-    Trading() {
-        orderBooks = std::map<std::string, trading::OrderBook>();
-    }
+    std::mutex orderBooksMutex;
+    // Modified constructor
+    Trading(net::io_context& ioc_, std::atomic<bool>& shutdownFlag_)
+        : ioc(ioc_), shutdownFlag(shutdownFlag_) {}
 
     // get orderbooks
-    std::map<std::string, trading::OrderBook> getOrderbooks() {
+    std::map<std::string, std::shared_ptr<trading::OrderBook>>& getOrderbooks() {
+        std::cout << "Trading::getOrderbooks()" << std::endl;
         return orderBooks;
     }
 
@@ -41,14 +49,15 @@ class Trading {
             ssl::context ctx{ssl::context::tlsv13_client};
             ctx.set_default_verify_paths();
 
-            http_client = std::make_shared<HTTPClient>(net::make_strand(http_ioc), ctx);
+            http_client = std::make_shared<HTTPClient>(net::make_strand(ioc), ctx);
 
             http_client->setReadCallback([this](const std::string& data) {
                 processLoginData(data);
             });
 
             http_client->run(host, port);
-            http_io_thread = boost::make_unique<std::thread>([this](){ http_ioc.run(); });
+            cout << "http client running" << endl;
+            // http_io_thread = boost::make_unique<std::thread>([this](){ http_ioc.run(); });
 
         } catch (std::exception const& e) {
             std::cerr << "Error: " << e.what() << std::endl;
@@ -57,11 +66,7 @@ class Trading {
 
     void liveFunction()
     {
-        // @TODO: Remove hardcoded values
-        // @TODO: Add error handling
-        // @TODO: Add a stop button or handle multiple invocations of runFunction()
-        // @TODO: Let the user decide host, port, and subscription
-        std::cout << "MainWindow::liveFunction()" << std::endl;
+        std::cout << "Trading::liveFunction()" << std::endl;
         auto host = "advanced-trade-ws.coinbase.com";
         auto port = "443";
 
@@ -92,14 +97,15 @@ class Trading {
             ssl::context ctx{ssl::context::tlsv13_client};
             ctx.set_default_verify_paths();
 
-            websocket_client = std::make_shared<WebSocketClient>(ws_ioc, ctx);
+            websocket_client = std::make_shared<WebSocketClient>(ioc, ctx);
 
             websocket_client->setReadCallback([this](const std::string& data) {
                 processData(data);
             });
 
             websocket_client->run(host, port, text);
-            ws_io_thread = boost::make_unique<std::thread>([this](){ ws_ioc.run(); });
+            std::cout << "websocket client running" << std::endl;
+            // ws_io_thread = boost::make_unique<std::thread>([this](){ ws_ioc.run(); });
 
         } catch (std::exception const& e) {
             std::cerr << "Error: " << e.what() << std::endl;
@@ -166,7 +172,7 @@ class Trading {
                     entry.priceLevel = std::stod(update["price_level"].get<std::string>());
                     entry.quantity = std::stod(update["new_quantity"].get<std::string>());
                     
-                    orderBooks[productId].update(entry);
+                    orderBooks[productId]->update(entry);
                 }
             }
         } catch (const json::parse_error& e) {
@@ -206,4 +212,28 @@ class Trading {
         return ss.str();
     }
 
+    // New shutdown method
+    void shutdown()
+    {
+        // Close the clients
+        if (websocket_client) {
+            websocket_client->close();
+        }
+        if (http_client) {
+            http_client->close();
+        }
+
+        // Set the shutdown flag
+        shutdownFlag = true;
+
+        // Stop all order books
+        {
+            std::lock_guard<std::mutex> lock(orderBooksMutex);
+            for (auto& pair : orderBooks) {
+                pair.second->stopSnapshotThread();
+                // Optional: Reset shared_ptrs if no longer needed
+                // pair.second.reset();
+            }
+        }
+    }
 };

@@ -11,7 +11,7 @@ HTTPClient::~HTTPClient() {
     std::cout << "TODO: HTTPClient::~HTTPClient()" << std::endl;
 }
 
-void HTTPClient::shutdown() {
+void HTTPClient::close() {
     std::cout << "HTTPClient::shutdown()" << std::endl;
 
     // Gracefully close the stream
