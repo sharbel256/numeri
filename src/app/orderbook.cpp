@@ -91,7 +91,6 @@ void OrderBook::createSnapshot() {
 std::shared_ptr<OrderBookSnapshot> OrderBook::getSnapshot() {
     auto snapshot = std::atomic_load(&snapshotPtr);
     if (snapshot) {
-        snapshot->updateMetrics();
         return snapshot;
     } else {
         // Handle the case when snapshotPtr is null

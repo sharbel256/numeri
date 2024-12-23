@@ -93,7 +93,7 @@ private:
     std::mutex bookMutex; // Mutex for thread safety
 
 public:
-    OrderBook() : windowMillis(5000), snapshotIntervalMillis(1000), snapshotThreadRunning(true)
+    OrderBook() : windowMillis(5000), snapshotIntervalMillis(100), snapshotThreadRunning(true)
     {
         // Initialize snapshotPtr
         std::atomic_store(&snapshotPtr, std::make_shared<OrderBookSnapshot>());
@@ -128,6 +128,8 @@ public:
     std::shared_ptr<OrderBookSnapshot> getSnapshot();
     void createSnapshot();
     void stopSnapshotThread();
+
+    // getter
 
 };
 

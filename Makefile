@@ -10,7 +10,13 @@ all: debug
 
 # setup target creates the build directory and links it in
 
-default_flags = -G"Unix Makefiles" -DENABLE_TESTING=TRUE -DENABLE_TOOLS=TRUE -DENABLE_COVERAGE=FALSE
+default_flags = -G"Unix Makefiles" -DENABLE_TESTING=TRUE \
+-DENABLE_TOOLS=TRUE \
+-DENABLE_COVERAGE=FALSE \
+-DCMAKE_TOOLCHAIN_FILE=/Users/sharbel/vcpkg/scripts/buildsystems/vcpkg.cmake \
+-DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3 \
+-DOPENSSL_CRYPTO_LIBRARY=/opt/homebrew/opt/openssl@3/lib/libcrypto.dylib \
+-DOPENSSL_SSL_LIBRARY=/opt/homebrew/opt/openssl@3/lib/libssl.dylib \
 
 .PHONY : setup
 setup: setup-debug

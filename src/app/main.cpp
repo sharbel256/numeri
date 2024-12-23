@@ -27,16 +27,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Register the signal handler
-    signals.async_wait([&](const boost::system::error_code& error, int signal_number)
+    signals.async_wait([&](const boost::system::error_code&, int)
     {
-        if (!error)
-        {
-            std::cout << "Signal received, shutting down..." << std::endl;
-            shutdownFlag = true;
-            trading.shutdown();
-            ioc.stop();
-        }
+        std::cout << "Signal received, shutting down..." << std::endl;
+        shutdownFlag = true;
+        trading.shutdown();
+        ioc.stop();
     });
 
     // Start the reader thread
@@ -49,8 +45,8 @@ int main(int argc, char *argv[])
     });
 
     // Start trading operations
-    trading.login();
-    trading.liveFunction();
+    trading.getAccounts();
+    trading.startWebsocket();
 
     // Run the io_context in the main thread
     ioc.run();

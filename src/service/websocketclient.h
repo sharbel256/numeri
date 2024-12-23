@@ -13,6 +13,7 @@
 #include <memory>
 #include <iostream>
 #include <functional>
+#include <map>
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
@@ -46,6 +47,7 @@ public:
     void on_read(beast::error_code ec,std::size_t bytes_transferred);
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
     void on_close(beast::error_code ec);
+    void setHeaders(const std::map<std::string, std::string>& headers);
     void setReadCallback(ReadCallback callback);
     
     volatile bool stopped = false;
@@ -55,6 +57,7 @@ private:
     tcp::resolver resolver_;
     beast::flat_buffer buffer_;
     websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws_;
+    std::map<std::string, std::string> custom_headers_;
 
     ReadCallback onReadCallback;
 };

@@ -84,11 +84,15 @@ void WebSocketClient::on_ssl_handshake(beast::error_code ec) {
 
     // Set a decorator to change the User-Agent of the handshake
     ws_.set_option(websocket::stream_base::decorator(
-        [](websocket::request_type& req)
+        [this](websocket::request_type& req)
         {
             req.set(http::field::user_agent,
                 std::string(BOOST_BEAST_VERSION_STRING) +
                     " websocket-client-async-ssl");
+            // Add custom headers
+            for (const auto& header : custom_headers_) {
+                req.set(header.first, header.second);
+            }
         }));
 
     // Perform the websocket handshake
@@ -142,4 +146,8 @@ void WebSocketClient::on_close(beast::error_code ec) {
 
 void WebSocketClient::setReadCallback(ReadCallback callback) {
     this->onReadCallback = callback;
+}
+
+void WebSocketClient::setHeaders(const std::map<std::string, std::string>& headers) {
+    custom_headers_ = headers;
 }
