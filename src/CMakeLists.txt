@@ -15,7 +15,18 @@ set(OPENSSL_SSL_LIBRARY "/opt/homebrew/Cellar/openssl@1.1/1.1.1t/lib/libssl.dyli
 
 message(STATUS "${CMAKE_PROJECT_NAME} version: ${PROJECT_VERSION}")
 
-find_package(Qt6 CONFIG COMPONENTS Widgets REQUIRED)
 
+
+# Include directories for headers
+include_directories(
+    ${CMAKE_SOURCE_DIR}/app
+    ${CMAKE_SOURCE_DIR}/service
+)
+
+# Add subdirectories
 add_subdirectory(app)
 add_subdirectory(service)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/../import/googletest)  # Include Google Test
+add_subdirectory(tests)  # Add the tests directory
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/../import/googletest ${CMAKE_BINARY_DIR}/googletest-build)

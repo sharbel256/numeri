@@ -119,7 +119,7 @@ void WebSocketClient::on_read(beast::error_code ec,std::size_t bytes_transferred
 
     if(ec) return fail(ec, "read");
 
-    std::cout << beast::make_printable(buffer_.data()) << std::endl;
+    // std::cout << beast::make_printable(buffer_.data()) << std::endl; // prints raw json data
 
     if (onReadCallback) {
         onReadCallback(beast::buffers_to_string(buffer_.data()));
