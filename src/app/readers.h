@@ -2,8 +2,6 @@
 
 #include "orderbook.h"
 #include <thread>
-#include <chrono>
-#include <iostream>
 
 namespace readers {
     void readerThreadFunction(std::shared_ptr<trading::OrderBook> orderBook, std::atomic<bool>& shutdownFlag)

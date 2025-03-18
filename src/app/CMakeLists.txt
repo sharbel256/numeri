@@ -6,6 +6,7 @@ add_executable(main
     trading.h
     readers.h
     constants.h
+    orderbuilder.cpp
 )
 
 add_library(orderbook

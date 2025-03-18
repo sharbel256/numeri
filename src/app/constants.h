@@ -8,7 +8,7 @@ namespace API
 {
     /*
     preview an order (POST https://api.coinbase.com/api/v3/brokerage/orders/preview)
-    create an order (GET https://api.coinbase.com/api/v3/brokerage/orders)
+    create an order (POST https://api.coinbase.com/api/v3/brokerage/orders)
     get order (GET https://api.coinbase.com/api/v3/brokerage/orders/historical/{order_id})
     list orders (GET https://api.coinbase.com/api/v3/brokerage/orders/historical/batch)
     list fills (GET https://api.coinbase.com/api/v3/brokerage/orders/historical/fills)
@@ -19,6 +19,7 @@ namespace API
      */
 
     // create constants for the above API endpoints
+    const std::string HOST = "api.coinbase.com";
     const std::string PREVIEW_ORDER = "/api/v3/brokerage/orders/preview";
     const std::string CREATE_ORDER = "/api/v3/brokerage/orders";
     const std::string GET_ORDER = "/api/v3/brokerage/orders/historical/";

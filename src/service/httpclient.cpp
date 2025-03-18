@@ -4,7 +4,7 @@
 HTTPClient::HTTPClient(net::io_context& ioc, ssl::context& ctx)
     : ioc_(ioc), ctx_(ctx)
 {
-    ctx_.set_default_verify_paths();
+    
 }
 
 HTTPClient::~HTTPClient() {
@@ -13,24 +13,42 @@ HTTPClient::~HTTPClient() {
 
 void HTTPClient::connectTLS(ssl::stream<beast::tcp_stream>& stream, const std::string& host, const std::string& port) {
     beast::error_code ec;
+    
+    // Set a timeout on the operation
+    beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
+    
+    try {
+        tcp::resolver resolver(ioc_);
+        auto const results = resolver.resolve(host, port, ec);
+        if(ec) {
+            std::cerr << "HTTPClient: Resolve failed: " << ec.message() << std::endl;
+            throw std::runtime_error("Resolve failed: " + ec.message());
+        }
 
-    tcp::resolver resolver(ioc_);
-    auto const results = resolver.resolve(host, port, ec);
-    if(ec)
-        throw std::runtime_error("Resolve failed: " + ec.message());
+        beast::get_lowest_layer(stream).connect(results, ec);
+        if(ec) {
+            std::cerr << "HTTPClient: Connect failed: " << ec.message() << std::endl;
+            throw std::runtime_error("Connect failed: " + ec.message());
+        }
 
-    beast::get_lowest_layer(stream).connect(results, ec);
-    if(ec)
-        throw std::runtime_error("Connect failed: " + ec.message());
+        // Set SNI Hostname (many hosts need this to handshake successfully)
+        if(!SSL_set_tlsext_host_name(stream.native_handle(), host.c_str())) {
+            beast::error_code ssl_ec(static_cast<int>(::ERR_get_error()), net::error::get_ssl_category());
+            std::cerr << "HTTPClient: SNI set failed: " << ssl_ec.message() << std::endl;
+            throw std::runtime_error("SNI set failed: " + ssl_ec.message());
+        }
 
-    if(!SSL_set_tlsext_host_name(stream.native_handle(), host.c_str())) {
-        beast::error_code ssl_ec(static_cast<int>(::ERR_get_error()), net::error::get_ssl_category());
-        throw std::runtime_error("SNI set failed: " + ssl_ec.message());
+        beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
+        stream.handshake(ssl::stream_base::client, ec);
+        if(ec) {
+            std::cerr << "HTTPClient: Handshake failed: " << ec.message() << std::endl;
+            throw std::runtime_error("Handshake failed: " + ec.message());
+        }
     }
-
-    stream.handshake(ssl::stream_base::client, ec);
-    if(ec)
-        throw std::runtime_error("Handshake failed: " + ec.message());
+    catch (const std::exception& e) {
+        std::cerr << "HTTPClient: Exception in connectTLS: " << e.what() << std::endl;
+        throw;
+    }
 }
 
 std::string HTTPClient::get(const std::string& host, const std::string& port, const std::string& target, 
@@ -49,50 +67,91 @@ std::string HTTPClient::get(const std::string& host, const std::string& port, co
 
     return sendRequestAndGetResponse(stream, req);
 }
-
-std::string HTTPClient::post(const std::string& host, const std::string& port, const std::string& target, const std::string& body,
-                             const std::map<std::string,std::string>& extraHeaders)
+std::string HTTPClient::post(const std::string& host, const std::string& port, 
+    const std::string& target, const std::string& body,
+    const std::map<std::string,std::string>& extraHeaders)
 {
-    ssl::stream<beast::tcp_stream> stream(ioc_, ctx_);
-    connectTLS(stream, host, port);
+    try {
+        ssl::stream<beast::tcp_stream> stream(ioc_, ctx_);
+        if (!stream.native_handle()) {
+            throw std::runtime_error("Failed to create SSL stream");
+        }
 
-    http::request<http::string_body> req{http::verb::post, target, 11};
-    req.set(http::field::host, host);
-    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    req.set(http::field::content_type, "application/json");
-    for (auto& h : extraHeaders) {
-        req.set(h.first, h.second);
+        connectTLS(stream, host, port);
+
+        http::request<http::string_body> req{http::verb::post, target, 11};
+        req.set(http::field::host, host);
+        req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+        req.set(http::field::content_type, "application/json");
+
+        for (const auto& h : extraHeaders) {
+            if (h.first.empty() || h.second.empty()) {
+                std::cerr << "Warning: Empty header key or value detected" << std::endl;
+                continue;
+            }
+            req.set(h.first, h.second);
+        }
+
+        req.body() = body;
+        req.prepare_payload();
+        return sendRequestAndGetResponse(stream, req);
     }
-    req.body() = body;
-    req.prepare_payload();
-
-    return sendRequestAndGetResponse(stream, req);
+    catch (const std::exception& e) {
+        std::cerr << "HTTPClient: Exception in POST request: " << e.what() << std::endl;
+        throw;
+    }
 }
 
 std::string HTTPClient::sendRequestAndGetResponse(ssl::stream<beast::tcp_stream>& stream, http::request<http::string_body>& req)
 {
     beast::error_code ec;
     http::write(stream, req, ec);
-    if(ec)
+    if(ec) {
+        std::cerr << "HTTPClient: Write failed: " << ec.message() << std::endl;
         throw std::runtime_error("Write failed: " + ec.message());
+    }
 
     beast::flat_buffer buffer;
     http::response<http::string_body> res;
+    beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
     http::read(stream, buffer, res, ec);
-    if(ec)
+    if(ec) {
+        std::cerr << "HTTPClient: Read failed: " << ec.message() << std::endl;
         throw std::runtime_error("Read failed: " + ec.message());
+    }
+    
+    // Store the response body before shutdown
+    std::string response_body = res.body();
 
-    // Attempt a graceful shutdown
-    stream.shutdown(ec);
-    if(ec == net::error::eof) {
-        // This indicates the EOF is normal
-        ec = {};
+    // Gracefully close the connection - handle broken pipe cleanly
+    try {
+        // First try SSL shutdown
+        stream.shutdown(ec);
+        if (ec == net::error::eof || ec == net::ssl::error::stream_truncated) {
+            // These errors are normal during SSL shutdown
+            ec = {}; // Clear the error
+        } 
+        else if (ec) {
+            // Continue despite SSL shutdown errors - we'll still try to close the socket
+        }
+        
+        // Then try socket shutdown
+        beast::get_lowest_layer(stream).socket().shutdown(tcp::socket::shutdown_both, ec);
+        if (ec == beast::errc::not_connected || ec == boost::asio::error::broken_pipe) {
+            // These are expected if the peer has already closed their side
+            ec = {}; // Clear the error
+        }
+        else if (ec) {
+            // We don't throw here since we already have the response
+        }
+    }
+    catch (const std::exception& e) {
+        // Log but don't throw - we already have our response
+        std::cerr << "HTTPClient: Exception during connection shutdown: " << e.what() 
+                  << " (this is non-fatal)" << std::endl;
     }
 
-    if(ec && ec != net::ssl::error::stream_truncated)
-        throw std::runtime_error("Shutdown failed: " + ec.message());
-
-    return res.body();
+    return response_body;
 }
 
 std::string HTTPClient::calculateSignature(const std::string& message, const std::string& secretKey)
@@ -111,140 +170,3 @@ std::string HTTPClient::calculateSignature(const std::string& message, const std
 
     return ss.str();
 }
-
-// void HTTPClient::close() {
-//     std::cout << "HTTPClient::shutdown()" << std::endl;
-
-//     // Gracefully close the stream
-//     stream_.async_shutdown(
-//             beast::bind_front_handler(&HTTPClient::on_shutdown,shared_from_this()));
-
-//     // not_connected happens sometimes so don't bother reporting it.
-//     // if(ec && ec != beast::errc::not_connected) return fail(ec, "shutdown");
-// }
-
-// // Start the asynchronous operation
-// void HTTPClient::run(const char* host, const char* port)
-// {
-//     // Set SNI Hostname (many hosts need this to handshake successfully)
-//     if(! SSL_set_tlsext_host_name(stream_.native_handle(), host))
-//     {
-//         beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-//         std::cerr << ec.message() << "\n";
-//         return;
-//     }
-
-//     std::string method = "GET";
-//     std::string requestPath = "/api/v3/brokerage/accounts";
-//     std::string body = "";
-
-//     std::string apiKey = std::getenv("COINBASE_API_KEY");
-//     std::string secretKey = std::getenv("COINBASE_SECRET_KEY");
-
-//     auto now = std::chrono::system_clock::now();
-//     auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-//     std::string timestampString = std::to_string(timestamp);
-
-//     std::string message = timestampString + method + requestPath + body;
-//     std::string signature = calculateSignature(message, secretKey);
-
-//     req_.method(http::verb::get);
-//     req_.target(requestPath);
-//     req_.version(11); // HTTP/1.1
-//     req_.set(http::field::host, host);
-//     req_.set(http::field::content_type, "application/json");
-//     req_.set("CB-ACCESS-KEY", apiKey);
-//     req_.set("CB-VERSION", "2021-01-09");
-//     req_.set("CB-ACCESS-TIMESTAMP", timestampString);
-//     req_.set("CB-ACCESS-SIGN", signature);
-
-//     // Look up the domain name
-//     resolver_.async_resolve(host, port,
-//         beast::bind_front_handler(&HTTPClient::on_resolve,shared_from_this()));
-// }
-
-// void HTTPClient::on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
-//     if(ec) return fail(ec, "resolve");
-
-//     // Set a timeout on the operation
-//     beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
-
-//     // Make the connection on the IP address we get from a lookup
-//     beast::get_lowest_layer(stream_).async_connect(
-//         results,
-//         beast::bind_front_handler(&HTTPClient::on_connect,shared_from_this()));
-// }
-
-// void HTTPClient::on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
-//         if(ec) return fail(ec, "connect");
-
-//         // Perform the SSL handshake
-//         stream_.async_handshake(ssl::stream_base::client,
-//             beast::bind_front_handler(&HTTPClient::on_handshake,shared_from_this()));
-// }
-
-// void HTTPClient::on_handshake(beast::error_code ec)
-// {
-//     if(ec) return fail(ec, "handshake");
-
-//     // Set a timeout on the operation
-//     beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
-
-//     // Send the HTTP request to the remote host
-//     http::async_write(stream_, req_,
-//         beast::bind_front_handler(&HTTPClient::on_write,shared_from_this()));
-// }
-
-// void HTTPClient::on_write(beast::error_code ec, std::size_t bytes_transferred) {
-//     boost::ignore_unused(bytes_transferred);
-
-//     if(ec) return fail(ec, "write");
-
-//     // Receive the HTTP response
-//     http::async_read(stream_, buffer_, res_,
-//         beast::bind_front_handler(&HTTPClient::on_read, shared_from_this()));
-// }
-
-// void HTTPClient::on_read(beast::error_code ec, std::size_t bytes_transferred) {
-//     boost::ignore_unused(bytes_transferred);
-
-//     if(ec) return fail(ec, "read");
-
-//     // Write the message to standard out
-//     std::cout << res_ << std::endl;
-
-//     if (onReadCallback) {
-//         onReadCallback(res_.body());
-//     }
-
-//     // Set a timeout on the operation
-//     beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
-// }
-
-// void HTTPClient::on_shutdown(beast::error_code ec) {
-//     if(ec) return fail(ec, "shutdown");
-
-//     // If we get here then the connection is closed gracefully
-//     stopped = true;
-// }
-
-// std::string HTTPClient::calculateSignature(const std::string& message, const std::string& secretKey)
-// {
-//     unsigned char hmacResult[EVP_MAX_MD_SIZE];
-//     unsigned int hmacLength;
-
-//     HMAC(EVP_sha256(), secretKey.c_str(), secretKey.length(),
-//          reinterpret_cast<const unsigned char*>(message.c_str()), message.length(), 
-//          hmacResult, &hmacLength);
-
-//     std::stringstream ss;
-//     ss << std::hex << std::setfill('0');
-//     for(unsigned int i = 0; i < hmacLength; ++i)
-//         ss << std::setw(2) << static_cast<unsigned>(hmacResult[i]);
-
-//     return ss.str();
-// }
-
-// void HTTPClient::setReadCallback(ReadCallback callback) {
-//     this->onReadCallback = callback;
-// }

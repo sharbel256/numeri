@@ -1,15 +1,11 @@
 #include "httpclient.h"
 #include "websocketclient.h"
 #include "orderbook.h"
-#include <map>
 #include <memory>
-#include <atomic>
 #include <mutex>
-#include <string>
+#include <unordered_map>
 #include <nlohmann/json.hpp>
 #include <jwt-cpp/jwt.h>
-#include <unordered_map>
-#include <chrono>
 
 class Trading {
 public:
@@ -38,6 +34,7 @@ public:
 private:
     std::atomic<bool>& shutdownFlag;
     net::io_context& ioc;
+    ssl::context ctx;
 
     std::shared_ptr<HTTPClient> http_client;
     std::shared_ptr<WebSocketClient> websocket_client;
@@ -48,7 +45,6 @@ private:
     void processData(const std::string& data);
     std::string getTimestamp();
     std::string calculateSignature(const std::string& message, const std::string& secretKey);
-    std::string get_jwt(std::string method, std::string path);
     std::string create_jwt(std::string method, std::string path);
     std::string websocket_jwt();
 
@@ -60,20 +56,14 @@ private:
     );
 };
 
-
-// trading.cpp
-// #include "trading.h"
-#include <iostream>
-#include <chrono>
-#include <iomanip>
-#include <sstream>
-#include <cstdlib>
-#include <cmath>
-
 using json = nlohmann::json;
 
 Trading::Trading(net::io_context& ioc_, std::atomic<bool>& shutdownFlag_)
-: ioc(ioc_), shutdownFlag(shutdownFlag_) {}
+: ioc(ioc_), shutdownFlag(shutdownFlag_),ctx(ssl::context::tlsv13_client) {
+    ctx.set_default_verify_paths();
+    ctx.set_verify_mode(ssl::verify_peer);
+    http_client = std::make_shared<HTTPClient>(ioc, ctx);
+}
 
 std::map<std::string, std::shared_ptr<trading::OrderBook>>& Trading::getOrderbooks() {
     std::cout << "Trading::getOrderbooks()" << std::endl;
@@ -85,11 +75,6 @@ void Trading::getAccounts() {
     auto port = "443";
 
     try {
-        ssl::context ctx{ssl::context::tlsv13_client};
-        ctx.set_default_verify_paths();
-
-        http_client = std::make_shared<HTTPClient>(ioc, ctx);
-
         std::string method = "GET";
         std::string requestPath = "/api/v3/brokerage/accounts";
         std::string body = "";
@@ -97,7 +82,6 @@ void Trading::getAccounts() {
         auto headers = generateAuthHeaders(method, requestPath, body);
 
         std::string response = http_client->get(host, port, requestPath, headers);
-        std::cout << "here" << std::endl;
         processLoginData(response);
     } catch (std::exception const& e) {
         std::cerr << "Error in login: " << e.what() << std::endl;
@@ -158,7 +142,6 @@ void Trading::startWebsocket()
 
 void Trading::processLoginData(const std::string& response)
 {
-    std::cout << "processing login data" << std::endl;
     json jsonResponse = json::parse(response);
     auto accountsArray = jsonResponse["accounts"];
     
@@ -289,7 +272,6 @@ std::string Trading::create_jwt(std::string method, std::string path) {
         .set_header_claim("kid", jwt::claim(key_name))
         .set_header_claim("nonce", jwt::claim(nonce))
         .sign(jwt::algorithm::es256(key_name, key_secret));
-
     return token;
 };
 
@@ -349,22 +331,20 @@ std::string Trading::previewOrder(const std::string& requestBody) {
     std::string method = "POST";
     std::string path = "/api/v3/brokerage/orders/preview";
     auto headers = generateAuthHeaders(method, path, requestBody);
-
+    std::cout << "preview order" << std::endl;
     return http_client->post("api.coinbase.com", "443", path, requestBody, headers);
 }
 
-// Create an order (GET) - per user’s request
-std::string Trading::createOrder(const std::string& queryParams) {
-    std::string method = "GET";
+// Create an order (POST) - per user’s request
+std::string Trading::createOrder(const std::string& requestBody) {
+    std::string method = "POST";
     std::string path = "/api/v3/brokerage/orders";
-    // If queryParams is not empty, append ?queryParams
-    std::string fullPath = path;
-    if (!queryParams.empty()) {
-        fullPath += "?" + queryParams;
+    auto headers = generateAuthHeaders(method, path, requestBody);
+    std::cout << "Creating order" << std::endl;
+    if (!http_client) {
+        throw std::runtime_error("http_client is null");
     }
-
-    auto headers = generateAuthHeaders(method, fullPath);
-    return http_client->get("api.coinbase.com", "443", fullPath, headers);
+    return http_client->post("api.coinbase.com", "443", path, requestBody, headers);
 }
 
 // Get order (GET)
