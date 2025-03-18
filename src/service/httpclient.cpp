@@ -37,7 +37,6 @@ void HTTPClient::run(const char* host, const char* port)
     std::string requestPath = "/api/v3/brokerage/accounts";
     std::string body = "";
 
-    // Load your API key, signature, and timestamp into variables
     std::string apiKey = std::getenv("COINBASE_API_KEY");
     std::string secretKey = std::getenv("COINBASE_SECRET_KEY");
 

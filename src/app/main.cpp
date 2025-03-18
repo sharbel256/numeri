@@ -1,16 +1,21 @@
-#include "ui/mainwindow.h"
-#include <QApplication>
+#include "trading.h"
+#include "readers.h"
+#include "thread"
 
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
+    Trading trading;
+    trading.login();
+    trading.liveFunction();
 
-    MainWindow w;
+    readers::readerThreadFunction(trading.getOrderbooks()["BTC-USD"]);
 
-    w.show();
+    // handle graceful shutdown
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+    trading.stop();
     
-    int ret = a.exec();
 
-    return ret;
+    return 0;
 }
+

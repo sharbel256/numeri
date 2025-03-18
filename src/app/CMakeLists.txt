@@ -1,13 +1,15 @@
-find_package(Qt6 CONFIG COMPONENTS Widgets REQUIRED)
-
-add_subdirectory(ui)
-
 add_executable(main
     main.cpp
+    trading.h
+    readers.h
+)
+
+add_library(orderbook
+    orderbook.h
+    orderbook.cpp
 )
 
 target_link_libraries(main 
-    Qt6::Widgets
     service_lib
-    ui
+    orderbook
 )
