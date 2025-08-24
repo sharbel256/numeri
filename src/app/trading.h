@@ -94,16 +94,9 @@ void Trading::startWebsocket()
     auto host = "advanced-trade-ws.coinbase.com";
     auto port = "443";
 
-    // std::string apiKey = std::getenv("COINBASE_API_KEY") ? std::getenv("COINBASE_API_KEY") : "";
-    // std::string secretKey = std::getenv("COINBASE_SECRET_KEY") ? std::getenv("COINBASE_SECRET_KEY") : "";
-
     std::string type = "subscribe";
     std::vector<std::string> product_ids = {"BTC-USD"};
     std::string channel = "level2";
-    // std::string timestamp = getTimestamp();
-
-    // std::string message = timestamp + channel + product_ids[0];
-    // std::string signature = calculateSignature(message, secretKey);
 
     std::string jwt_token = websocket_jwt();
 
@@ -111,9 +104,6 @@ void Trading::startWebsocket()
     j["type"] = type;
     j["product_ids"] = product_ids;
     j["channel"] = channel;
-    // j["signature"] = signature;
-    // j["api_key"] = apiKey;
-    // j["timestamp"] = timestamp;
 
     auto text = j.dump();
 

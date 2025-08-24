@@ -1,6 +1,6 @@
 #include "trading.h"
 #include "readers.h"
-#include "orderbuilder.cpp"
+// #include "orderbuilder.cpp"
 #include <thread>
 #include <atomic>
 #include <boost/asio/signal_set.hpp>
@@ -36,50 +36,43 @@ int main(int argc, char *argv[])
         ioc.stop();
     });
 
-    // Start the reader thread
-    // std::thread readerThread([&]()
-    // {
-    //     auto& orderBooks = trading.getOrderbooks();
-    //     if (orderBooks.find("BTC-USD") != orderBooks.end()) {
-    //         readers::readerThreadFunction(orderBooks["BTC-USD"], shutdownFlag);
-    //     }
-    // });
-
     // Start trading operations
     trading.getAccounts();
     trading.startWebsocket();
 
-    std::string requestBody = R"({
-        "product_id": "BTC-USD",
-        "side": "BUY",
-        "order_configuration": {
-            "limit_limit_gtc": {
-                "base_size": "0.001",
-                "limit_price": "45000.00",
-                "post_only": false
-            }
-        }
-    })";
+    // Create and run the market maker
+    auto& orderBooks = trading.getOrderbooks();
+    if (orderBooks.find("BTC-USD") != orderBooks.end()) {
+        // Create a shared pointer to Trading for the market maker
+        std::shared_ptr<Trading> tradingPtr = std::make_shared<Trading>(ioc, shutdownFlag);
+        
+        // Create and run the market maker
+        readers::MarketMaker marketMaker(
+            orderBooks["BTC-USD"],
+            tradingPtr,
+            shutdownFlag,
+            "BTC-USD",  // product ID
+            20.0,       // minimum spread ($30)
+            10.0,       // minimum profit ($20)
+            0.001       // order size (0.001 BTC)
+        );
 
-    std::string limitGtcOrder = OrderBuilder()
-            .setClientOrderId("selling-btc-001")
-            .setProductId("BTC-USD")
-            .setSide("SELL")
-            .limitLimitGtc("0.001", "100000.00", false) // Sell 0.001 BTC at 100,000
-            .build();
-    
-    std::cout << "hello" << std::endl;
-    std::string response = trading.createOrder(limitGtcOrder);
-    std::cout << response << std::endl;
-    
-    // Run the io_context in the main thread
-    ioc.run();
-    
-    // Wait for the reader thread to finish
-    // if (readerThread.joinable())
-    // {
-    //     readerThread.join();
-    // }
+        // Run the market maker in a separate thread
+        std::thread marketMakerThread([&marketMaker]() {
+            marketMaker.run();
+        });
+
+        // Run the io_context in the main thread
+        ioc.run();
+
+        // Wait for the market maker thread to finish
+        if (marketMakerThread.joinable()) {
+            marketMakerThread.join();
+        }
+    } else {
+        std::cerr << "Error: BTC-USD order book not found" << std::endl;
+        return 1;
+    }
 
     return 0;
 }

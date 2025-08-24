@@ -10,11 +10,6 @@ class OrderBuilder {
 public:
     OrderBuilder() = default;
 
-    OrderBuilder& setClientOrderId(const std::string& clientOrderId) {
-        client_order_id_ = clientOrderId;
-        return *this;
-    }
-
     OrderBuilder& setProductId(const std::string& productId) {
         product_id_ = productId;
         return *this;
@@ -85,9 +80,7 @@ public:
         }
 
         json j;
-        if (!client_order_id_.empty()) {
-            j["client_order_id"] = client_order_id_;
-        }
+        j["client_order_id"] = generateClientOrderId();
         j["product_id"] = product_id_;
         j["side"] = side_;
         j["order_configuration"][order_type_] = order_config_;
@@ -96,11 +89,17 @@ public:
     }
 
 private:
-    std::string client_order_id_; // Empty means not set
     std::string product_id_;      // Required
     std::string side_;            // Required
     std::string order_type_;      // Required
     json order_config_;
+
+    std::string generateClientOrderId() const {
+        auto now = std::chrono::system_clock::now();
+        auto duration = now.time_since_epoch();
+        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        return product_id_ + "_" + side_ + "_" + std::to_string(millis);
+    }
 };
 
 inline std::string getIsoTimestamp(std::chrono::system_clock::time_point time = std::chrono::system_clock::now()) {
