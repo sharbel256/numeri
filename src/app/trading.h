@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <nlohmann/json.hpp>
 #include <jwt-cpp/jwt.h>
+#include <jwt-cpp/traits/nlohmann-json/traits.h>
 
 class Trading {
 public:
@@ -244,23 +245,17 @@ std::string Trading::create_jwt(std::string method, std::string path) {
     std::string url = "api.coinbase.com";
     std::string uri = method + " " + url + path;
 
-    // Generate a random nonce
-    unsigned char nonce_raw[16];
-    RAND_bytes(nonce_raw, sizeof(nonce_raw));
-    std::string nonce(reinterpret_cast<char*>(nonce_raw), sizeof(nonce_raw));
-
     // create timestamp
     auto now = std::chrono::system_clock::now();
 
     // Create JWT token
-    auto token = jwt::create()
+    auto token = jwt::create<jwt::traits::nlohmann_json>()
         .set_subject(key_name)
         .set_issuer("cdp")
         .set_not_before(now)
         .set_expires_at(now + std::chrono::seconds{120})
-        .set_payload_claim("uri", jwt::claim(uri))
-        .set_header_claim("kid", jwt::claim(key_name))
-        .set_header_claim("nonce", jwt::claim(nonce))
+        .set_payload_claim("uri", uri)
+        .set_header_claim("kid", key_name)
         .sign(jwt::algorithm::es256(key_name, key_secret));
     return token;
 };
@@ -274,22 +269,16 @@ std::string Trading::websocket_jwt() {
         throw std::runtime_error("Secret key is not set in the environment variables.");
     }
 
-    // Generate a random nonce
-    unsigned char nonce_raw[16];
-    RAND_bytes(nonce_raw, sizeof(nonce_raw));
-    std::string nonce(reinterpret_cast<char*>(nonce_raw), sizeof(nonce_raw));
-
     // create timestamp
     auto now = std::chrono::system_clock::now();
 
     // Create JWT token
-    auto token = jwt::create()
+    auto token = jwt::create<jwt::traits::nlohmann_json>()
         .set_subject(key_name)
         .set_issuer("cdp")
         .set_not_before(now)
         .set_expires_at(now + std::chrono::seconds{120})
-        .set_header_claim("kid", jwt::claim(key_name))
-        .set_header_claim("nonce", jwt::claim(nonce))
+        .set_header_claim("kid", key_name)
         .sign(jwt::algorithm::es256(key_name, key_secret));
 
     return token;

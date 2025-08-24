@@ -1,6 +1,5 @@
 find_package(jwt-cpp CONFIG REQUIRED)
 
-
 add_executable(main
     main.cpp
     trading.h
