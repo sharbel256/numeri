@@ -9,7 +9,7 @@ set(CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY OFF)
 set(CMAKE_FIND_USE_PACKAGE_REGISTRY OFF)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ language version to use (default is 17)")
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ language version to use (default is 20)")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -38,7 +38,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   endif()
 endif()
 
-add_subdirectory(src)
+add_subdirectory(numeri)
 add_subdirectory(test)
 
 find_package(Git QUIET)

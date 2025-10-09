@@ -8,7 +8,7 @@ add_executable(main
     orderbuilder.cpp
 )
 
-add_library(orderbook
+add_library(orderbook SHARED
     orderbook.h
     orderbook.cpp
 )
