@@ -1,6 +1,5 @@
 find_package(jwt-cpp CONFIG REQUIRED)
 
-
 add_executable(main
     main.cpp
     trading.h
@@ -9,7 +8,7 @@ add_executable(main
     orderbuilder.cpp
 )
 
-add_library(orderbook
+add_library(orderbook SHARED
     orderbook.h
     orderbook.cpp
 )

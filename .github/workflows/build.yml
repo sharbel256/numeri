@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: build
 
 on:
   workflow_dispatch:
@@ -15,13 +15,23 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch }}
+
+    - name: Install dependencies
+      run: |
+        brew install cmake googletest
+
     - name: Configure CMake
       run: cmake -S . -B build
 
     - name: Build
       run: cmake --build build
+
+    - name: Run Tests
+      run: ctest --test-dir test --output-on-failure
