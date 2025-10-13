@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: build
 
 on:
   workflow_dispatch:
@@ -32,3 +32,6 @@ jobs:
 
     - name: Build
       run: cmake --build build
+
+    - name: Run Tests
+      run: ctest --test-dir build --output-on-failure
