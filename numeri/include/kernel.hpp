@@ -17,6 +17,6 @@ class Kernel {
  private:
   void load_config();
 
-  std::jthread config_watcher_thread_;
+  // std::jthread config_watcher_thread_; not using yet
   nlohmann::json config_;
 };
