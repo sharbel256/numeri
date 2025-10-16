@@ -12,11 +12,18 @@
 class Kernel {
  public:
   Kernel();
+  void start();
+  void stop();
+  void watch_config();
 
-
- private:
+private:
   void load_config();
+  void check_for_config_updates();
 
-  // std::jthread config_watcher_thread_; not using yet
   nlohmann::json config_;
+  std::string config_path_;
+  std::filesystem::file_time_type config_last_modified_;
+
+  std::atomic<bool> running_{true};
+  std::jthread config_watcher_;
 };
