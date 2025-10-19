@@ -4,8 +4,14 @@ Kernel::Kernel() {
   load_config();
 }
 
+Kernel::~Kernel() {
+  if (config_watcher_.joinable()) {
+    config_watcher_.join();
+  }
+}
+
 void Kernel::start() {
-  config_watcher_ = std::jthread(&Kernel::watch_config, this);
+  config_watcher_ = std::thread(&Kernel::watch_config, this);
   std::cout << "started watcher thread" << std::endl;
 }
 

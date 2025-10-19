@@ -12,6 +12,7 @@
 class Kernel {
  public:
   Kernel();
+  ~Kernel();
   void start();
   void stop();
   void watch_config();
@@ -25,5 +26,5 @@ private:
   std::filesystem::file_time_type config_last_modified_;
 
   std::atomic<bool> running_{true};
-  std::jthread config_watcher_;
+  std::thread config_watcher_;
 };
