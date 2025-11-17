@@ -25,7 +25,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install cmake googletest nlohmann-json
+        brew install cmake googletest nlohmann-json boost
 
     - name: Configure CMake
       run: cmake -S . -B build
