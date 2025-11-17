@@ -1,0 +1,38 @@
+#include <boost/lockfree/queue.hpp>
+#include <model.hpp>
+#include <plugin_interface.hpp>
+
+#include <chrono>
+#include <iostream>
+#include <thread>
+
+using namespace trading;
+
+class Algorithm1 : public IPlugin {
+public:
+  std::string getName() const override {
+    return "Algorithm1";
+  }
+
+  void init(const trading::PluginConfig& config, const nlohmann::json& params) override {
+    this->l2_out = config.l2_out;
+    this->metrics_out = config.metrics_out;
+    return;
+  }
+
+  void execute() override {
+    while (true) {
+      trading::OrderBookReady* event;
+      if (l2_out->pop(event)) {
+        std::cout << "received message: " << event->timestamp_ns << std::endl;
+      }
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+  }
+
+private:
+  boost::lockfree::queue<trading::OrderBookReady*>* l2_out;
+  boost::lockfree::queue<trading::Metric*>* metrics_out;
+};
+
+EXPORT_PLUGIN(Algorithm1)

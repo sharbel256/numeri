@@ -1,5 +1,8 @@
 #pragma once
 
+#include <model.hpp>
+#include <nlohmann/json.hpp>
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -9,6 +12,7 @@ public:
   virtual ~IPlugin() = default;
   virtual std::string getName() const = 0;
   virtual void execute() = 0;
+  virtual void init(const trading::PluginConfig& config, const nlohmann::json& params) = 0;
 };
 
 using PluginCreateFunc = IPlugin* (*)();

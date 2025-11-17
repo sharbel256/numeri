@@ -11,6 +11,10 @@ Kernel::~Kernel() {
 }
 
 void Kernel::start() {
+  init_queues();
+  start_ingestion();
+  start_execution();
+  start_algorithm();
   config_watcher_ = std::thread(&Kernel::watch_config, this);
   std::cout << "started watcher thread" << std::endl;
 }
@@ -36,13 +40,6 @@ void Kernel::load_config() {
 
     config_last_modified_ = std::filesystem::last_write_time(config_path_);
 
-    bool autoload = config_["plugins"]["autoload"];
-    std::vector<std::filesystem::path> plugin_files;
-
-    for (auto path : plugin_files) {
-      std::cout << "path: " << path << std::endl;
-    }
-    
   } catch (const std::exception& e) {
     std::cerr << "Error loading config: " << e.what() << std::endl;
     throw e;
@@ -54,6 +51,20 @@ void Kernel::watch_config() {
     check_for_config_updates();
     std::this_thread::sleep_for(std::chrono::seconds(3));
   }
+}
+
+void Kernel::init_queues() {
+  auto make_queue = []<typename T>(size_t cap) {
+    return std::make_unique<boost::lockfree::queue<T>>(cap);
+  };
+
+  auto metadata = config_["metadata"];
+
+  l2_broadcast_queue =
+      make_queue.operator()<trading::OrderBookReady*>(metadata["l2_broadcast_buffer"]);
+  metrics_queue = make_queue.operator()<trading::Metric*>(metadata["metrics_buffer"]);
+  order_queue = make_queue.operator()<trading::OrderRequest*>(metadata["order_buffer"]);
+  fill_queue = make_queue.operator()<trading::OrderFill*>(metadata["fill_buffer"]);
 }
 
 void Kernel::check_for_config_updates() {
@@ -71,4 +82,72 @@ void Kernel::check_for_config_updates() {
       std::cerr << "error updating config: " << e.what() << std::endl;
     }
   }
+}
+
+void Kernel::start_ingestion() {
+  for (auto& plugin : config_["data_sources"]) {
+    std::string plugin_name = plugin["name"];
+    std::string plugin_path = plugin["file"];
+    std::cout << "starting " << plugin_name << std::endl;
+    void* handle = dlopen(plugin_path.c_str(), RTLD_LAZY);
+    if (handle == nullptr) {
+      std::cerr << "Failed to load plugin: " << plugin["name"] << dlerror();
+    }
+
+    auto createFunc = (PluginCreateFunc)dlsym(handle, "createPlugin");
+    if (createFunc == nullptr) {
+      std::cerr << "Failed to find plugin symbol: " << plugin["name"] << dlerror();
+    }
+
+    auto loaded_plugin = createFunc();
+
+    ingestors[plugin["name"]] = loaded_plugin;
+
+    trading::PluginConfig cfg;
+    cfg.l2_out = l2_broadcast_queue.get();
+    cfg.metrics_out = metrics_queue.get();
+    cfg.order_out = order_queue.get();
+    cfg.fill_in = fill_queue.get();
+
+    loaded_plugin->init(cfg, plugin["params"]);
+  }
+
+  for (auto& [name, p] : ingestors) {
+    auto* thread = new std::thread([p]() { p->execute(); });
+    threads.emplace_back(thread);
+  }
+}
+
+void Kernel::start_algorithm() {
+  for (auto& plugin : config_["algorithms"]) {
+    std::string plugin_name = plugin["name"];
+    std::string plugin_path = plugin["file"];
+    std::cout << "starting " << plugin_name << std::endl;
+    void* handle = dlopen(plugin_path.c_str(), RTLD_LAZY);
+    if (handle == nullptr) {
+      std::cerr << "Failed to load plugin: " << plugin["name"] << dlerror();
+    }
+
+    auto createFunc = (PluginCreateFunc)dlsym(handle, "createPlugin");
+    if (createFunc == nullptr) {
+      std::cerr << "Failed to find plugin symbol: " << plugin["name"] << dlerror();
+    }
+
+    auto loaded_plugin = createFunc();
+
+    algorithms[plugin["name"]] = loaded_plugin;
+    trading::PluginConfig cfg;
+    cfg.l2_out = l2_broadcast_queue.get();
+    cfg.metrics_out = metrics_queue.get();
+
+    loaded_plugin->init(cfg, plugin["params"]);
+  }
+
+  for (auto& [name, p] : algorithms) {
+    auto* thread = new std::thread([p]() { p->execute(); });
+    threads.emplace_back(thread);
+  }
+}
+
+void Kernel::start_execution() {
 }
