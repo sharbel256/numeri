@@ -1,7 +1,6 @@
 {
   "name": "numeri",
   "version": "0.1.0",
-  "default-features": true,
   "dependencies": [
     "jwt-cpp",
     "nlohmann-json",
