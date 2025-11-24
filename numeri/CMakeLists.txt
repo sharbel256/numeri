@@ -6,7 +6,12 @@ add_library(kernel INTERFACE
     include/ring_buffer.hpp
     include/plugin_interface.hpp
     include/kernel.hpp
+    include/logging.hpp
+    include/http_client.hpp
+    include/websocket_client.hpp
 )
+
+include_directories(${Boost_INCLUDE_DIR})
 
 target_include_directories(kernel INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -17,6 +22,7 @@ target_link_libraries(numeri PRIVATE
     kernel
     nlohmann_json::nlohmann_json
     Boost::atomic
+    ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES}
 )
 
 add_subdirectory(plugins)

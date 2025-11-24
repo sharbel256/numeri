@@ -13,6 +13,9 @@ public:
   virtual std::string getName() const = 0;
   virtual void execute() = 0;
   virtual void init(const trading::PluginConfig& config, const nlohmann::json& params) = 0;
+  // Request the plugin to stop and clean up async resources. Plugins should return from execute()
+  // shortly after stop() is called.
+  virtual void stop() = 0;
 };
 
 using PluginCreateFunc = IPlugin* (*)();

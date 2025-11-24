@@ -6,10 +6,14 @@
 #include <plugin_interface.hpp>
 #include <sys/event.h>
 #include <sys/types.h>
+#include <websocket_client.hpp>
 
 #include <fstream>
 #include <iostream>
 #include <thread>
+
+namespace net = boost::asio;
+namespace ssl = boost::asio::ssl;
 
 class Kernel {
  public:
@@ -42,5 +46,14 @@ private:
   std::unique_ptr<boost::lockfree::queue<trading::OrderRequest*>> order_queue;
   std::unique_ptr<boost::lockfree::queue<trading::OrderFill*>> fill_queue;
 
-  std::vector<std::thread*> threads;
+  // plugin worker threads (value-type threads are safer than owning raw pointers)
+  std::vector<std::thread> threads;
+
+  // io_context and ssl::context will be owned by Kernel and shared with plugins
+  std::shared_ptr<net::io_context> ioc;
+  std::shared_ptr<ssl::context> ctx;
+
+  using work_guard_t = boost::asio::executor_work_guard<net::io_context::executor_type>;
+  std::unique_ptr<work_guard_t> ioc_work_guard;
+  std::vector<std::thread> ioc_threads;
 };

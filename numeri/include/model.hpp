@@ -2,11 +2,15 @@
 
 #include <boost/lockfree/queue.hpp>
 #include <nlohmann/json.hpp>
+#include <websocket_client.hpp>
 
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
+
+namespace net = boost::asio;
+namespace ssl = boost::asio::ssl;
 
 namespace trading {
 
@@ -86,6 +90,9 @@ struct PluginConfig {
   boost::lockfree::queue<trading::OrderFill*>* fill_in = nullptr;
 
   nlohmann::json params;
+
+  std::shared_ptr<boost::asio::io_context> ioc;
+  std::shared_ptr<boost::asio::ssl::context> ssl_ctx;
 };
 
 } // namespace trading

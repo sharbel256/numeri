@@ -11,16 +11,64 @@ Kernel::~Kernel() {
 }
 
 void Kernel::start() {
+  // create shared io_context and ssl::context and run the io_context on a small thread pool
+  ioc = std::make_shared<net::io_context>();
+  ctx = std::make_shared<ssl::context>(ssl::context::sslv23_client);
+
+  // keep io_context alive
+  ioc_work_guard = std::make_unique<work_guard_t>(boost::asio::make_work_guard(*ioc));
+
+  unsigned int n = std::max<unsigned int>(1, std::thread::hardware_concurrency());
+  for (unsigned int i = 0; i < n; ++i) {
+    ioc_threads.emplace_back([this] { ioc->run(); });
+  }
+
   init_queues();
   start_ingestion();
   start_execution();
   start_algorithm();
+
   config_watcher_ = std::thread(&Kernel::watch_config, this);
   std::cout << "started watcher thread" << std::endl;
 }
 
 void Kernel::stop() {
+  // signal stop
   running_ = false;
+  // 1) signal plugins to stop so they can close sockets and exit their execute loops
+  for (auto& [name, p] : ingestors) {
+    if (p)
+      p->stop();
+  }
+  for (auto& [name, p] : algorithms) {
+    if (p)
+      p->stop();
+  }
+  for (auto& [name, p] : execution_engines) {
+    if (p)
+      p->stop();
+  }
+
+  // 2) join plugin threads
+  for (auto& t : threads) {
+    if (t.joinable())
+      t.join();
+  }
+  threads.clear();
+
+  // 3) stop asio: reset guard then stop the context and join threads
+  if (ioc_work_guard) {
+    ioc_work_guard.reset();
+  }
+
+  if (ioc) {
+    ioc->stop();
+  }
+
+  for (auto& t : ioc_threads) {
+    if (t.joinable())
+      t.join();
+  }
 }
 
 void Kernel::load_config() {
@@ -108,13 +156,15 @@ void Kernel::start_ingestion() {
     cfg.metrics_out = metrics_queue.get();
     cfg.order_out = order_queue.get();
     cfg.fill_in = fill_queue.get();
+    // pass shared io_context and ssl context to the plugin
+    cfg.ioc = ioc;
+    cfg.ssl_ctx = ctx;
 
     loaded_plugin->init(cfg, plugin["params"]);
   }
 
   for (auto& [name, p] : ingestors) {
-    auto* thread = new std::thread([p]() { p->execute(); });
-    threads.emplace_back(thread);
+    threads.emplace_back([p]() { p->execute(); });
   }
 }
 
@@ -139,13 +189,15 @@ void Kernel::start_algorithm() {
     trading::PluginConfig cfg;
     cfg.l2_out = l2_broadcast_queue.get();
     cfg.metrics_out = metrics_queue.get();
+    // pass shared io_context and ssl context to the plugin
+    cfg.ioc = ioc;
+    cfg.ssl_ctx = ctx;
 
     loaded_plugin->init(cfg, plugin["params"]);
   }
 
   for (auto& [name, p] : algorithms) {
-    auto* thread = new std::thread([p]() { p->execute(); });
-    threads.emplace_back(thread);
+    threads.emplace_back([p]() { p->execute(); });
   }
 }
 
