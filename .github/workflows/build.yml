@@ -24,8 +24,8 @@ jobs:
         ref: ${{ github.event.inputs.branch }}
 
     - name: Install system packages
-      run: |
-        brew install cmake
+      run:
+        brew install cmake autoconf automake libtool pkg-config
 
     - name: Setup vcpkg and install dependencies
       run: |
