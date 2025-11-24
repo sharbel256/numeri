@@ -23,12 +23,23 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch }}
 
-    - name: Install dependencies
+    - name: Install system packages
       run: |
-        brew install cmake googletest nlohmann-json boost
+        brew install cmake
+
+    - name: Setup vcpkg and install dependencies
+      run: |
+        # Clone and bootstrap vcpkg
+        git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg
+        ./vcpkg/bootstrap-vcpkg.sh
+        # Choose triplet based on runner architecture
+        if [ "$(uname -m)" = "arm64" ]; then TRIPLET=arm64-osx; else TRIPLET=x64-osx; fi
+        # Install dependencies declared in vcpkg.json manifest
+        ./vcpkg/vcpkg install --triplet $TRIPLET
+      shell: bash
 
     - name: Configure CMake
-      run: cmake -S . -B build
+      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build
       run: cmake --build build
