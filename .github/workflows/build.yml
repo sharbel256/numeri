@@ -11,38 +11,52 @@ on:
     branches: [ "*" ]
   pull_request:
     branches: [ "*" ]
-    
 
 jobs:
   build:
-    runs-on: macos-latest
-
+    runs-on: macos-latest   # macos-14 is arm64, macos-13 is x64 – macos-latest is fine
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.inputs.branch }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+          submodules: recursive   # important if you use vcpkg git submodules
 
-    - name: Install system packages
-      run:
-        brew install cmake autoconf automake libtool pkg-config
+      - name: Install required tools via Homebrew
+        run: |
+          brew update
+          brew install \
+            cmake \
+            ninja \
+            autoconf \
+            automake \
+            libtool \
+            autoconf-archive    # This one was missing – the real cause of your error!
+            pkg-config
 
-    - name: Setup vcpkg and install dependencies
-      run: |
-        # Clone and bootstrap vcpkg
-        git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg
-        ./vcpkg/bootstrap-vcpkg.sh
-        # Choose triplet based on runner architecture
-        if [ "$(uname -m)" = "arm64" ]; then TRIPLET=arm64-osx; else TRIPLET=x64-osx; fi
-        # Install dependencies declared in vcpkg.json manifest
-        ./vcpkg/vcpkg install --triplet $TRIPLET
-      shell: bash
+      - name: Setup vcpkg
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
 
-    - name: Configure CMake
-      run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Install dependencies with correct triplet
+        run: |
+          if [ "$(uname -m)" = "arm64" ]; then
+            TRIPLET=arm64-osx
+          else
+            TRIPLET=x64-osx
+          fi
+          echo "Using triplet: $TRIPLET"
+          ./vcpkg/vcpkg install --triplet $TRIPLET
 
-    - name: Build
-      run: cmake --build build
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DCMAKE_BUILD_TYPE=Release
 
-    - name: Run Tests
-      run: ctest --test-dir test --output-on-failure
+      - name: Build
+        run: cmake --build build --config Release -- -j $(sysctl -n hw.logicalcpu)
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure -C Release
