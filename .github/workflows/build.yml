@@ -1,5 +1,4 @@
 name: build
-
 on:
   workflow_dispatch:
     inputs:
@@ -32,15 +31,41 @@ jobs:
           echo "PATH=/opt/homebrew/opt/autoconf/bin:/opt/homebrew/opt/automake/bin:/opt/homebrew/opt/libtool/bin:$PATH" >> $GITHUB_ENV
           echo "ACLOCAL_PATH=/opt/homebrew/share/aclocal" >> $GITHUB_ENV
 
-      - name: Remove old vcpkg folder if it exists (prevents fatal error)
-        run: rm -rf vcpkg
+      # ←←← CACHING STARTS HERE ←←←
 
-      - name: Clone and bootstrap vcpkg
+      - name: Restore vcpkg cache
+        uses: actions/cache@v4
+        id: vcpkg-cache
+        with:
+          path: |
+            vcpkg/downloads
+            vcpkg/buildtrees
+            vcpkg/packages
+            vcpkg/installed
+          # Change this key whenever vcpkg.json or the list of ports changes
+          key: vcpkg-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('vcpkg.json') || 'nocache' }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Clone and bootstrap vcpkg (only if cache missed)
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 https://github.com/microsoft/vcpkg.git
           ./vcpkg/bootstrap-vcpkg.sh
 
-      - name: Install dependencies via vcpkg (auto-detect triplet)
+      - name: Clone vcpkg (shallow, if cache hit we still need the folder)
+        if: steps.vcpkg-cache.outputs.cache-hit == 'true'
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git
+
+      # Optional but recommended: also cache the vcpkg git objects to make future clones faster
+      - name: Cache vcpkg git objects
+        uses: actions/cache@v4
+        with:
+          path: vcpkg/.git
+          key: vcpkg-git-${{ hashFiles('vcpkg.json') || 'initial' }}
+
+      - name: Install dependencies via vcpkg
         run: |
           if [ "$(uname -m)" = "arm64" ]; then
             TRIPLET=arm64-osx
@@ -49,6 +74,16 @@ jobs:
           fi
           echo "Using triplet: $TRIPLET"
           ./vcpkg/vcpkg install --triplet $TRIPLET
+
+      # ←←← OPTIONAL: Cache the CMake build directory (saves rebuilds when source didn’t change)
+      - name: Restore CMake build cache
+        uses: actions/cache@v4
+        id: cmake-cache
+        with:
+          path: build
+          key: cmake-build-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: |
+            cmake-build-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Configure CMake
         run: |

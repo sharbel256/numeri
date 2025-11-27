@@ -36,6 +36,8 @@ public:
     }
     this->type = params.value("type", std::string(""));
     this->channel = params.value("channel", std::string(""));
+    // publish the initial active buffer to the global current pointer
+    trading::current.store(&buffer[0], std::memory_order_release);
     return;
   }
 
@@ -57,13 +59,15 @@ public:
   }
 
   void heartbeat() {
-    auto* event = new trading::OrderBookReady{.book = nullptr,
-                                              .version = active->version.load(),
-                                              .timestamp_ns = now_ns()};
-    while (!l2_out->push(event)) {
+    // Publish a lightweight value-type snapshot for the whole system to consume.
+    trading::OrderBookSnapshot snap{.book = nullptr,
+                                    .version = published_version,
+                                    .timestamp_ns = now_ns()};
+
+    while (!l2_out->push(snap)) {
       std::cout << "[ingestor]: l2_out full" << std::endl;
-      OrderBookReady* event;
-      l2_out->pop(event);
+      trading::OrderBookSnapshot stale;
+      l2_out->pop(stale);
     }
   }
 
@@ -104,9 +108,83 @@ public:
     }
   }
 
+  // ------------------------------------------------------------------
+  // 4. Updated processData – ZERO COPY, fully lock-free
+  // ------------------------------------------------------------------
   void processData(const std::string& data) {
-    auto doc = json::parse(data);
-    std::cout << doc << std::endl;
+    json doc;
+    try {
+      doc = json::parse(data, nullptr, false);
+      if (doc.is_discarded())
+        return;
+    } catch (...) { return; }
+
+    if (!doc.contains("channel") || doc["channel"] != "l2_data")
+      return;
+    if (!doc.contains("events") || !doc["events"].is_array())
+      return;
+
+    bool has_update = false;
+    OrderBook* active = const_cast<OrderBook*>(current.load(std::memory_order_acquire));
+    active = (active == &buffer[0]) ? &buffer[1] : &buffer[0]; // pick the inactive one
+
+    for (const auto& ev : doc["events"]) {
+      if (!ev.contains("type") || ev["type"] != "update")
+        continue;
+      if (!ev.contains("updates"))
+        continue;
+
+      for (const auto& u : ev["updates"]) {
+        if (!u.contains("side") || !u.contains("price_level") || !u.contains("new_quantity"))
+          continue;
+
+        const std::string side = u["side"];
+        const double price = std::stod(u["price_level"].get<std::string>());
+        const double qty = std::stod(u["new_quantity"].get<std::string>());
+
+        if (side == "bid") {
+          auto& container = active->bids;
+          if (qty == 0.0) {
+            container.erase(price);
+          } else {
+            container[price] = qty;
+            // optional depth trimming for bids (keep top N)
+            if (container.size() > active->max_depth) {
+              container.erase(std::prev(container.end()));
+            }
+          }
+        } else {
+          auto& container = active->asks;
+          if (qty == 0.0) {
+            container.erase(price);
+          } else {
+            container[price] = qty;
+            // optional depth trimming for asks (keep top N)
+            if (container.size() > active->max_depth) {
+              container.erase(container.begin());
+            }
+          }
+        }
+        has_update = true;
+      }
+    }
+
+    if (has_update) {
+      active->last_update = std::chrono::steady_clock::now();
+      active->version = ++published_version;
+
+      // ONE atomic store publishes the new book to the whole system
+      current.store(active, std::memory_order_release);
+
+      // Push a tiny value-type snapshot (24 bytes) into the lock-free queue
+      OrderBookSnapshot snap{.book = active, .version = active->version, .timestamp_ns = now_ns()};
+
+      // lock-free push – never blocks, never allocates
+      while (!l2_out->push(snap)) {
+        OrderBookSnapshot stale;
+        l2_out->pop(stale);
+      }
+    }
   }
 
   std::string websocket_jwt() {
@@ -151,10 +229,10 @@ private:
   std::vector<std::string> products;
   int window_seconds;
 
-  trading::OrderBook book_a, book_b;
-  trading::OrderBook* active = &book_a;
-  trading::OrderBook* inactive = &book_b;
-  boost::lockfree::queue<trading::OrderBookReady*>* l2_out;
+  trading::OrderBook buffer[2];
+  uint64_t published_version{0};
+
+  boost::lockfree::queue<trading::OrderBookSnapshot>* l2_out;
 
   std::shared_ptr<WebSocketClient> websocket_client;
   std::shared_ptr<boost::asio::io_context> ioc_;

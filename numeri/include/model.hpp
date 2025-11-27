@@ -4,10 +4,12 @@
 #include <nlohmann/json.hpp>
 #include <websocket_client.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <type_traits>
 
 namespace net = boost::asio;
 namespace ssl = boost::asio::ssl;
@@ -34,15 +36,13 @@ struct Plugin {
 };
 
 struct OrderBook {
-  size_t max_depth = 100;
-  std::chrono::milliseconds time_window{500};
+  alignas(64) std::map<double, double, std::greater<double>> bids;
+  alignas(64) std::map<double, double> asks;
 
-  std::map<double, double, std::greater<double>> bids;
-  std::map<double, double> asks;
-
-  uint64_t sequence = 0;
-  std::atomic<uint64_t> version{0};
+  uint64_t sequence{0};
+  uint64_t version{0};
   std::chrono::steady_clock::time_point last_update;
+  size_t max_depth{100};
 
   double best_bid() const {
     return bids.empty() ? 0.0 : bids.begin()->first;
@@ -50,13 +50,29 @@ struct OrderBook {
   double best_ask() const {
     return asks.empty() ? 0.0 : asks.begin()->first;
   }
+
+  void reset() {
+    bids.clear();
+    asks.clear();
+    sequence = 0;
+    version = 0;
+  }
 };
 
-struct OrderBookReady {
-  std::shared_ptr<OrderBook> book;
-  uint64_t version;
-  uint64_t timestamp_ns;
+struct OrderBookSnapshot {
+  const OrderBook* book{nullptr};
+  uint64_t version{0};
+  uint64_t timestamp_ns{0};
 };
+
+static_assert(std::is_trivially_copyable_v<OrderBookSnapshot>,
+              "OrderBookSnapshot must be trivially copyable for lockfree queues");
+
+// Global pointer to the currently published OrderBook. Consumers may fallback
+// to this when a snapshot's backing buffer was recycled. Use an inline
+// variable so the symbol is available to all translation units (including
+// plugins built as shared libraries) without needing a separate .cpp file.
+inline std::atomic<const OrderBook*> current{nullptr};
 
 struct OrderFill {
   std::string client_order_id;
@@ -84,7 +100,7 @@ struct Metric {
 };
 
 struct PluginConfig {
-  boost::lockfree::queue<trading::OrderBookReady*>* l2_out = nullptr;
+  boost::lockfree::queue<trading::OrderBookSnapshot>* l2_out = nullptr;
   boost::lockfree::queue<trading::Metric*>* metrics_out = nullptr;
   boost::lockfree::queue<trading::OrderRequest*>* order_out = nullptr;
   boost::lockfree::queue<trading::OrderFill*>* fill_in = nullptr;

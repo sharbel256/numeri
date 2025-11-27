@@ -109,7 +109,7 @@ void Kernel::init_queues() {
   auto metadata = config_["metadata"];
 
   l2_broadcast_queue =
-      make_queue.operator()<trading::OrderBookReady*>(metadata["l2_broadcast_buffer"]);
+      make_queue.operator()<trading::OrderBookSnapshot>(metadata["l2_broadcast_buffer"]);
   metrics_queue = make_queue.operator()<trading::Metric*>(metadata["metrics_buffer"]);
   order_queue = make_queue.operator()<trading::OrderRequest*>(metadata["order_buffer"]);
   fill_queue = make_queue.operator()<trading::OrderFill*>(metadata["fill_buffer"]);

@@ -41,7 +41,7 @@ private:
   std::unordered_map<std::string, IPlugin*> algorithms;
   std::unordered_map<std::string, IPlugin*> ingestors;
 
-  std::unique_ptr<boost::lockfree::queue<trading::OrderBookReady*>> l2_broadcast_queue;
+  std::unique_ptr<boost::lockfree::queue<trading::OrderBookSnapshot>> l2_broadcast_queue;
   std::unique_ptr<boost::lockfree::queue<trading::Metric*>> metrics_queue;
   std::unique_ptr<boost::lockfree::queue<trading::OrderRequest*>> order_queue;
   std::unique_ptr<boost::lockfree::queue<trading::OrderFill*>> fill_queue;
