@@ -14,37 +14,33 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest   # macos-14 is arm64, macos-13 is x64 – macos-latest is fine
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
-          submodules: recursive   # important if you use vcpkg git submodules
+          submodules: recursive
 
       - name: Install required tools via Homebrew
         run: |
           brew update
           brew install cmake ninja autoconf automake libtool autoconf-archive pkg-config
 
-      - name: Use GNU autotools instead of Apple's old versions
+      - name: Use GNU autotools (critical on macOS!)
         run: |
           echo "PATH=/opt/homebrew/opt/autoconf/bin:/opt/homebrew/opt/automake/bin:/opt/homebrew/opt/libtool/bin:$PATH" >> $GITHUB_ENV
           echo "ACLOCAL_PATH=/opt/homebrew/share/aclocal" >> $GITHUB_ENV
-          echo "Using autoconf: $(which autoconf) $(autoconf --version | head -1)"
-          echo "Using automake: $(which automake) $(automake --version | head -1)"
 
-      - name: Setup vcpkg
+      - name: Remove old vcpkg folder if it exists (prevents fatal error)
+        run: rm -rf vcpkg
+
+      - name: Clone and bootstrap vcpkg
         run: |
           git clone --depth 1 https://github.com/microsoft/vcpkg.git
           ./vcpkg/bootstrap-vcpkg.sh
 
-      - name: Setup vcpkg
-        run: |
-          git clone --depth 1 https://github.com/microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.sh
-
-      - name: Install dependencies with correct triplet
+      - name: Install dependencies via vcpkg (auto-detect triplet)
         run: |
           if [ "$(uname -m)" = "arm64" ]; then
             TRIPLET=arm64-osx
@@ -61,7 +57,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build --config Release -- -j $(sysctl -n hw.logicalcpu)
+        run: cmake --build build --config Release --parallel $(sysctl -n hw.logicalcpu)
 
       - name: Run Tests
         run: ctest --test-dir build --output-on-failure -C Release
