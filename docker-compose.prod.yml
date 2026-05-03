@@ -1,0 +1,22 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: numeri-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4300:8000"
+    environment:
+      ENVIRONMENT: prod
+      LOG_FORMAT: json
+      LOG_LEVEL: INFO
+      PUZZLES_DIR: /puzzles
+      STATIC_DIR: /app/static
+    volumes:
+      - ${PUZZLES_HOST_DIR:-/Users/sharbel/numeri-puzzles}:/puzzles:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

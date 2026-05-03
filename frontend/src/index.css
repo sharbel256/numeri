@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme {
+  --color-paper: #f4ede0;
+  --color-paper-alt: #efe6d4;
+  --color-paper-deep: #e8ddc4;
+  --color-ink: #1f1b16;
+  --color-ink-soft: #5c5246;
+  --color-ink-faint: #9a8e7c;
+  --color-rule: #d9cdb6;
+  --color-accent: #b85429;
+  --color-accent-soft: #e8c4ac;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --tracking-label: 0.16em;
+  --tracking-meta: 0.08em;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-8deg) scale(2.6);
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(-8deg) scale(0.88);
+  }
+  78% {
+    transform: rotate(-8deg) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1);
+  }
+}
+
+@keyframes glow-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(184 84 41 / 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 22px rgb(184 84 41 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(184 84 41 / 0);
+  }
+}
+
+@keyframes pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.07);
+  }
+}
+
+@keyframes spark-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6) rotate(var(--spark-rot, 0deg));
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--spark-x, 0), var(--spark-y, -40px)) scale(1)
+      rotate(var(--spark-rot, 0deg));
+  }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease;
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease;
+}
+.animate-stamp-in {
+  animation: stamp-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.animate-glow-pulse {
+  animation: glow-pulse 0.9s ease-out;
+}
+.animate-pop {
+  animation: pop 0.5s ease;
+}
+.animate-spark {
+  animation: spark-rise 0.9s ease-out forwards;
+}
