@@ -1,6 +1,6 @@
 # Numeri — Daily Puzzle Generation Agent
 
-You are generating tomorrow's puzzle for [Numeri](https://numeri.sharbel.cc), a daily math puzzle site. One category per day, three difficulty levels per category. Output is a YAML file written directly to the live puzzles directory; the FastAPI backend reads files from disk with no review step, so correctness is your responsibility.
+You are maintaining a rolling 3-day buffer of upcoming puzzles for [Numeri](https://numeri.sharbel.cc), a daily math puzzle site. One category per day, three difficulty levels per category. Each run ensures that the next three UTC days each have a published puzzle file, generating any that are missing. Output is a YAML file per day written directly to the live puzzles directory; the FastAPI backend reads files from disk with no review step, so correctness is your responsibility.
 
 This document is the full task spec. Follow it end-to-end on each run.
 
@@ -8,17 +8,19 @@ This document is the full task spec. Follow it end-to-end on each run.
 
 ## 1. Goal & success criteria
 
-Produce one valid `~/numeri-puzzles/{tomorrow}/{category}.yaml` file containing three difficulty levels (1, 2, 3), each with a verified-correct answer.
+Maintain a **rolling 3-day buffer** of published puzzles. On each run, ensure that valid `~/numeri-puzzles/{day}/{category}.yaml` files exist for each of the next three UTC days (`today+1`, `today+2`, `today+3`). For any day in that window that is missing, generate it: three difficulty levels (1, 2, 3), each with a verified-correct answer.
 
-**Done means all of:**
+**Per generated day, done means all of:**
 - File exists at the right path.
 - File loads via `app.models.CategoryDay.model_validate(...)` without error.
 - Each level's `answer` has been independently re-derived and confirmed.
 - For multiple-choice levels, exactly one choice equals the canonical answer under the system's equivalence rules.
 - No level is a near-duplicate of a problem from the same category in the last 30 days.
-- One line appended to the audit log (§7).
+- One line appended to the audit log (§7) for that day.
 
-If you cannot meet all of the above after retries, **do not write the file**. Log the failure and exit non-zero.
+**Per run:** process days in order (`today+1` → `today+2` → `today+3`). If a single day cannot be completed after retries, log the FAIL line for that day and continue to the next day — do not abort the whole run. Partial progress preserves the buffer better than none. Exit non-zero only if at least one day in the window failed.
+
+In steady state, two of the three days will already have files and only the new `today+3` is generated. After a missed night, the run backfills whichever days are missing.
 
 ---
 
@@ -26,17 +28,22 @@ If you cannot meet all of the above after retries, **do not write the file**. Lo
 
 Run from `/Users/sharbel/code/numeri`. The backend code under `backend/app/` is the source of truth — read it if anything here looks ambiguous.
 
-1. **Compute tomorrow (UTC):** `tomorrow = datetime.now(UTC).date() + timedelta(days=1)`.
-2. **Skip if already published:** if `~/numeri-puzzles/{tomorrow}/` exists and contains any `*.yaml`, exit 0 with a log note. Never overwrite a manually-authored puzzle.
-3. **Compute rotation category:**
+1. **Compute the target window (UTC):**
+   ```
+   today = datetime.now(UTC).date()
+   targets = [today + timedelta(days=n) for n in (1, 2, 3)]
+   ```
+2. **For each `target` in `targets` (in order), do the per-day pipeline below.** Days are independent: a failure on one does not stop the next.
+3. **Skip if already published:** if `~/numeri-puzzles/{target}/` exists and contains any `*.yaml`, log a SKIP line and move on. Never overwrite a manually-authored puzzle.
+4. **Compute rotation category for `target`:**
    ```
    epoch = date(2026, 4, 20)
    order = ["arithmetic", "algebra", "geometry", "numbers", "logic",
             "probability", "calculus", "words", "diffeq", "theory"]
-   category = order[(tomorrow - epoch).days % 10]
+   category = order[(target - epoch).days % 10]
    ```
    Mirror `backend/app/puzzles.py:43-64` exactly. If that file changes, this constant changes with it.
-4. **Read recent history:** glob `~/numeri-puzzles/*/{category}.yaml` for the past 30 days. Skim the questions so you can avoid repeating problem shapes, specific numbers, or the same trick.
+5. **Read recent history:** glob `~/numeri-puzzles/*/{category}.yaml` for the 30 days preceding `target`. Skim the questions so you can avoid repeating problem shapes, specific numbers, or the same trick. Include any days you generated earlier in this same run — those count as recent history for later targets.
 
 ---
 
@@ -162,31 +169,33 @@ These checks run on every level that has a `choices` list, regardless of `defaul
 
 ### 5c. Retry policy
 
-If a level fails verification, regenerate it. Up to 3 attempts per level. If still failing after 3, abort the whole day, log the failure, exit non-zero.
+If a level fails verification, regenerate it. Up to 3 attempts per level. If still failing after 3, abort **just that day** — log the FAIL line for it and continue to the next target day in the window. The run as a whole exits non-zero if any day in the window failed, but other days in the window must still be attempted.
 
 ---
 
 ## 6. Write & validate
 
-1. Write YAML to `~/numeri-puzzles/{tomorrow}/{category}.yaml`. Use `ruamel.yaml` or `pyyaml` with block style for multi-line `question` and `walkthrough` fields. UTF-8, no trailing whitespace.
+For each target day being generated:
+
+1. Write YAML to `~/numeri-puzzles/{target}/{category}.yaml`. Use `ruamel.yaml` or `pyyaml` with block style for multi-line `question` and `walkthrough` fields. UTF-8, no trailing whitespace.
 2. **Validate by loading via the project's own model:**
    ```bash
    cd /Users/sharbel/code/numeri/backend
    uv run python -c "
    import sys, yaml
    from app.models import CategoryDay
-   data = yaml.safe_load(open('$HOME/numeri-puzzles/{tomorrow}/{category}.yaml'))
+   data = yaml.safe_load(open('$HOME/numeri-puzzles/{target}/{category}.yaml'))
    CategoryDay.model_validate(data)
    print('OK')
    "
    ```
-3. If validation fails: delete the file, log the error, exit non-zero. Do not leave a half-broken file in place.
+3. If validation fails: delete the file, log the FAIL line for that day, and move on to the next target day. Do not leave a half-broken file in place.
 
 ---
 
 ## 7. Audit log
 
-After every run (success or failure), append one line to `~/numeri-puzzles/_generation_log.md`:
+Append one line **per target day processed** to `~/numeri-puzzles/_generation_log.md` (so a single run typically appends 1–3 lines). The ISO date is the puzzle's target day, not the run date.
 
 ```
 - 2026-05-04 logic — OK (L1 numeric, L2 numeric, L3 choice/4) — verified

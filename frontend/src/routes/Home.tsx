@@ -26,6 +26,16 @@ const CATEGORY_NAMES: Record<Category, string> = {
 const LEVELS: Level[] = [1, 2, 3];
 const ROMAN: Record<Level, string> = { 1: "I", 2: "II", 3: "III" };
 
+function formatHeaderDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function Home() {
   const [today, setToday] = useState<TodaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +102,7 @@ function Header({
   return (
     <div className="grid grid-cols-[1fr_auto] items-baseline gap-3 border-b border-rule px-5 sm:px-8 lg:px-12 py-3.5">
       <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-soft truncate">
+        {formatHeaderDate(date)} <span className="text-ink-faint">·</span>{" "}
         {CATEGORY_NAMES[category] ?? category}
       </div>
       <div className="flex items-baseline gap-5 sm:gap-7">
@@ -127,6 +138,7 @@ function buildShareText(
   date: string,
   category: Category,
   results: Record<string, Result>,
+  streak: number,
 ): string {
   let total = 0;
   const grid = LEVELS.map((lvl) => {
@@ -136,9 +148,13 @@ function buildShareText(
     if (!r.correct) return "🟥";
     return r.hints === 0 ? "🟩" : "🟨";
   }).join("");
+  const scoreLine =
+    streak > 0
+      ? `${grid}  ${total}/300  · streak ${streak}`
+      : `${grid}  ${total}/300`;
   return [
-    `Numeri · ${CATEGORY_NAMES[category]} · ${date}`,
-    `${grid}  ${total}/300`,
+    `${CATEGORY_NAMES[category]} · ${date}`,
+    scoreLine,
     `math.sharbel.cc`,
   ].join("\n");
 }
@@ -146,7 +162,8 @@ function buildShareText(
 function ShareButton({ date, category }: { date: string; category: Category }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
-    const text = buildShareText(date, category, storage.get().results);
+    const state = storage.get();
+    const text = buildShareText(date, category, state.results, state.streak);
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -270,6 +287,8 @@ function SolveOne({
           });
         } else if (mode === "free") {
           setVal("");
+        } else {
+          setPicked(null);
         }
       }
     } catch {
@@ -282,9 +301,8 @@ function SolveOne({
     if (val.trim()) trySubmit(val);
   }
 
-  function pickChoice(opt: string) {
-    setPicked(opt);
-    trySubmit(opt);
+  function submitChoice() {
+    if (picked != null) trySubmit(picked);
   }
 
   function askHint() {
@@ -334,7 +352,8 @@ function SolveOne({
                 choices={puzzle.choices}
                 picked={picked}
                 correctAnswer={null}
-                onPick={pickChoice}
+                onPick={setPicked}
+                onSubmit={submitChoice}
                 disabled={state !== "solving"}
                 state={state}
                 wrong={wrong}
