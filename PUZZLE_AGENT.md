@@ -69,6 +69,10 @@ Each category has conventions for problem shapes and answer format. Use these de
 
 When both are set, the MC verification rules in §5b apply — your `choices` list must include the canonical answer (in matching form) plus distractors, and pass all MC checks even though the user sees the free input first.
 
+**`choice_labels` (mandatory whenever a choice contains math).** `choices` are the *matching* strings — SymPy-parseable / numeric and string-equal to the canonical `answer`. They render as a literal monospace string when no label is provided, which looks ugly for anything beyond a bare integer (`2*x*sin(x)` shows verbatim). For every level whose choices contain operators, function names, fractions, exponents, Greek letters, or any other math, **also provide a `choice_labels` list of the same length**, each entry a fully-LaTeX display string (typically `$...$`-wrapped). The frontend renders labels via KaTeX; if labels are absent, it falls back to the raw choice. Bare-integer choices (`"3"`, `"-1"`) may skip labels.
+
+Order rule: `choice_labels[i]` is the visual form of `choices[i]`. Don't shuffle independently. The shuffle in §5b.5 must keep them paired.
+
 ### `arithmetic`
 - Mental math, fractions, percentages, ratios, sequences.
 - **Default mode:** `free` (`numeric`). Always include `choices`.
@@ -216,18 +220,38 @@ Pattern (calculus L3 in `~/numeri-puzzles/2026-05-03/calculus.yaml` is a good te
 - Hint 2: identify the pieces ("let `u = x^3`, `v = sin(x)`").
 - Hint 3: give the derivatives of the pieces.
 
-**Walkthrough:** the key step rendered in LaTeX, plus the final answer. Doesn't need to be a full essay — show the move that unlocks the problem. Prefer `$$...$$` for display equations, `$...$` inline.
+**Hints render in a narrow sidebar (~280px on desktop, full-width on mobile).** Math that would overflow that column scrolls horizontally inside the hint block, which is ugly. To keep hints visually clean:
+- Use **inline math `$...$` only** in hints. No `$$...$$` display equations.
+- Avoid wide constructs in hints: `\dfrac` (use `\tfrac` or `a/b`), long sums or integrals with bounds, multi-line `\cases`, anything that would render wider than ~30 monospace characters.
+- If a step genuinely needs a big equation, *split it across two hints* or push it into the walkthrough. The hint should hand the user the idea; the walkthrough does the algebra.
+
+**Walkthrough:** the key step rendered in LaTeX, plus the final answer. Doesn't need to be a full essay — show the move that unlocks the problem. Prefer `$$...$$` for display equations, `$...$` inline. The walkthrough renders in the wide main column, so display math is fine here.
 
 ---
 
 ## 9. Style rules
 
-- **KaTeX:** `$...$` inline, `$$...$$` display. Escape backslashes correctly in YAML (use block scalars `|` for multi-line content with LaTeX — backslashes don't need escaping inside block scalars).
+- **KaTeX everywhere math appears.** This is non-negotiable. Any operator, function name, fraction, exponent, Greek letter, integral, sum, root, etc. anywhere in `question`, `hints[*].text`, `walkthrough`, or `choice_labels[*]` **must live inside `$...$` (inline) or `$$...$$` (display)**. No bare `2*x`, `pi/4`, `sin(x)`, `x^2` outside math delimiters — the user sees the literal characters, which looks broken. Plain English narration around the math is fine; the math itself is always wrapped. Escape backslashes correctly in YAML (use block scalars `|` for multi-line content with LaTeX — backslashes don't need escaping inside block scalars).
 - **Expression answers must be SymPy-parseable:** `**` for powers (not `^`), `*` for multiplication (`3*x` not `3x` — though `implicit_multiplication_application` tolerates both, prefer explicit), `sqrt(...)`, `pi`, `E`, trig functions lowercase (`sin`, `cos`).
 - **Numeric answers:** prefer exact rationals as strings (`"1/2"`, `"7"`) over decimals when possible. Decimals tolerated to ±1e-6.
-- **Choices:** strings, even for numbers (`"3"`, not `3`). All choices in the same form (don't mix `"0.5"` with `"1/2"`). The canonical `answer` string must appear verbatim as one of the choices, character-for-character — the backend's choice-mode check is exact string match (`backend/app/equivalence.py:42-43`), not symbolic.
+- **Choices (matching strings):** strings, even for numbers (`"3"`, not `3`). All choices in the same form (don't mix `"0.5"` with `"1/2"`). The canonical `answer` string must appear verbatim as one of the choices, character-for-character — the backend's choice-mode check is exact string match (`backend/app/equivalence.py:42-43`), not symbolic. **No LaTeX delimiters inside `choices`** — `$...$` would break SymPy parsing and free-mode equivalence.
+- **`choice_labels` (display strings):** parallel array, same length as `choices`, paired by index. Each entry is fully LaTeX-formatted, almost always `$...$`-wrapped. Required whenever any choice contains math. Example pairing:
+  ```yaml
+  choices:
+    - "2*x*sin(x) + x**2*cos(x)"
+    - "2*x*cos(x) + x**2*sin(x)"
+    - "x**2*cos(x)"
+    - "2*x*sin(x) - x**2*cos(x)"
+  choice_labels:
+    - "$2x\\sin(x) + x^{2}\\cos(x)$"
+    - "$2x\\cos(x) + x^{2}\\sin(x)$"
+    - "$x^{2}\\cos(x)$"
+    - "$2x\\sin(x) - x^{2}\\cos(x)$"
+  ```
+  When you shuffle (§5b.5), shuffle the *paired* `(choices[i], choice_labels[i])` together — never independently.
 - **Placeholders:** for `expression` free input, set a useful `placeholder` (e.g. `"f'(x) ="`, `"y(x) ="`, `"P ="`).
 - **Question phrasing:** clear, self-contained, no references to "yesterday's puzzle" or external context. State all definitions you use.
+- **Beauty test (apply before finalizing each level):** mentally render every text field. If any equation would appear as raw `2*x` or `pi/4`, you forgot delimiters. If a hint contains an equation that would clearly overflow ~30 chars of monospace, rewrite it shorter or split the hint.
 
 ---
 
@@ -239,4 +263,4 @@ Pattern (calculus L3 in `~/numeri-puzzles/2026-05-03/calculus.yaml` is a good te
 - Audit log: `~/numeri-puzzles/_generation_log.md`
 - Models: `backend/app/models.py`
 - Equivalence rules: `backend/app/equivalence.py`
-- Existing examples: `~/numeri-puzzles/2026-05-03/calculus.yaml`
+- Existing examples: `~/numeri-puzzles/2026-05-03/calculus.yaml`, `~/numeri-puzzles/2026-05-06/calculus.yaml` (uses `choice_labels`)

@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 
+import { Latex } from "./Latex";
+
 interface Props {
   choices: string[];
+  labels?: string[] | null;
   picked: string | null;
   correctAnswer: string | null;
   onPick: (choice: string) => void;
@@ -13,6 +16,7 @@ interface Props {
 
 export function ChoiceInput({
   choices,
+  labels,
   picked,
   correctAnswer,
   onPick,
@@ -84,7 +88,16 @@ export function ChoiceInput({
               >
                 {letter}
               </span>
-              <span className="font-mono font-medium text-lg sm:text-xl pr-3">{opt}</span>
+              {labels && labels[idx] ? (
+                <Latex
+                  source={labels[idx]}
+                  className="font-display text-lg sm:text-xl pr-3 min-w-0 overflow-x-auto"
+                />
+              ) : (
+                <span className="font-mono font-medium text-lg sm:text-xl pr-3 min-w-0 overflow-x-auto">
+                  {opt}
+                </span>
+              )}
             </button>
           );
         })}

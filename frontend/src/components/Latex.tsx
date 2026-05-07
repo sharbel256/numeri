@@ -20,12 +20,14 @@ export function Latex({ source, className }: Props) {
 }
 
 function renderMixed(src: string): string {
-  // Tokenize: $$...$$ (display), then $...$ (inline), then plain text.
+  // Tokenize: $$...$$ (display), then $...$ (inline), then plain text. Backslash
+  // escapes (e.g. `\$` for a literal dollar inside math) are skipped so the
+  // pairing of `$` delimiters survives them.
   const out: string[] = [];
   let i = 0;
   while (i < src.length) {
     if (src.startsWith("$$", i)) {
-      const end = src.indexOf("$$", i + 2);
+      const end = findClosing(src, i + 2, true);
       if (end === -1) {
         out.push(escapeHtml(src.slice(i)));
         break;
@@ -35,7 +37,7 @@ function renderMixed(src: string): string {
       continue;
     }
     if (src[i] === "$") {
-      const end = src.indexOf("$", i + 1);
+      const end = findClosing(src, i + 1, false);
       if (end === -1) {
         out.push(escapeHtml(src.slice(i)));
         break;
@@ -51,8 +53,27 @@ function renderMixed(src: string): string {
   return out.join("");
 }
 
+function findClosing(src: string, from: number, doubleDollar: boolean): number {
+  for (let j = from; j < src.length; j++) {
+    if (src[j] === "\\" && j + 1 < src.length) {
+      j++;
+      continue;
+    }
+    if (doubleDollar) {
+      if (src.startsWith("$$", j)) return j;
+    } else if (src[j] === "$") {
+      return j;
+    }
+  }
+  return -1;
+}
+
 function nextDelim(s: string, from: number): number {
   for (let j = from; j < s.length; j++) {
+    if (s[j] === "\\" && j + 1 < s.length) {
+      j++;
+      continue;
+    }
     if (s[j] === "$") return j;
   }
   return s.length;

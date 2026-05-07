@@ -132,3 +132,35 @@ body {
 .animate-spark {
   animation: spark-rise 0.9s ease-out forwards;
 }
+
+/* KaTeX safety: never let math force horizontal page scroll. Display equations
+   are width-bounded by their container; if they exceed it, scroll *inside* the
+   block instead of pushing the layout. */
+.katex-display {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Reclaim a sliver of vertical space the scrollbar would otherwise eat. */
+  padding-bottom: 2px;
+}
+.katex-display::-webkit-scrollbar {
+  height: 4px;
+}
+.katex-display::-webkit-scrollbar-thumb {
+  background: var(--color-rule);
+  border-radius: 2px;
+}
+
+/* Hint sidebar is narrow (~280px). Scale math down so common equations fit
+   without horizontal scrolling, and let inline math break onto a new line
+   between tokens rather than spilling past the column. */
+.hint-prose .katex {
+  font-size: 0.92em;
+}
+.hint-prose .katex-display {
+  font-size: 0.85em;
+  margin: 0.5em 0;
+}
+.hint-prose {
+  overflow-wrap: anywhere;
+}

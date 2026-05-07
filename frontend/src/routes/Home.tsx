@@ -350,6 +350,7 @@ function SolveOne({
             ) : puzzle.choices ? (
               <ChoiceInput
                 choices={puzzle.choices}
+                labels={puzzle.choice_labels}
                 picked={picked}
                 correctAnswer={null}
                 onPick={setPicked}

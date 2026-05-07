@@ -33,6 +33,7 @@ export interface PublicPuzzle {
   question: string;
   free_input: FreeInput | null;
   choices: string[] | null;
+  choice_labels: string[] | null;
   default_mode: Mode;
   hints: Hint[];
   walkthrough: string | null;

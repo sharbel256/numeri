@@ -76,6 +76,7 @@ def to_public(day: CategoryDay, level: Level) -> PublicPuzzle:
         question=d.question,
         free_input=d.free_input,
         choices=d.choices,
+        choice_labels=d.choice_labels,
         default_mode=d.default_mode,
         hints=d.hints,
         walkthrough=d.walkthrough,

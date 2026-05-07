@@ -37,7 +37,10 @@ export function HintTrail({ hints, revealed, onRequest, canRequest, state }: Pro
             <div className="font-mono text-[10px] tracking-[0.08em] text-accent mb-1.5">
               Note {i + 1} · −{h.cost}
             </div>
-            <Latex source={h.text} className="font-display text-base leading-relaxed text-ink" />
+            <Latex
+              source={h.text}
+              className="hint-prose font-display text-base leading-relaxed text-ink"
+            />
           </div>
         ))}
       </div>

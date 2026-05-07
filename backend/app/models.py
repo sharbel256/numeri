@@ -38,6 +38,7 @@ class Difficulty(BaseModel):
     answer: str
     free_input: FreeInput | None = None
     choices: list[str] | None = Field(default=None, min_length=2, max_length=6)
+    choice_labels: list[str] | None = None
     default_mode: Mode
     hints: list[Hint] = Field(default_factory=list)
     walkthrough: str | None = None
@@ -50,6 +51,11 @@ class Difficulty(BaseModel):
             raise ValueError("default_mode='free' requires free_input")
         if self.default_mode == "choice" and self.choices is None:
             raise ValueError("default_mode='choice' requires choices")
+        if self.choice_labels is not None:
+            if self.choices is None:
+                raise ValueError("choice_labels requires choices")
+            if len(self.choice_labels) != len(self.choices):
+                raise ValueError("choice_labels must have the same length as choices")
         return self
 
 
@@ -76,6 +82,7 @@ class PublicPuzzle(BaseModel):
     question: str
     free_input: FreeInput | None
     choices: list[str] | None
+    choice_labels: list[str] | None
     default_mode: Mode
     hints: list[Hint]
     walkthrough: str | None
