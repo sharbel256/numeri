@@ -15,14 +15,6 @@ export const PALETTES: Partial<Record<Category, PaletteKey[]>> = {
     { label: "cos", insert: "cos(" },
     { label: "ln", insert: "ln(" },
   ],
-  diffeq: [
-    { label: "e", insert: "e" },
-    { label: "√", insert: "sqrt(" },
-    { label: "x²", insert: "^2" },
-    { label: "sin", insert: "sin(" },
-    { label: "cos", insert: "cos(" },
-    { label: "ln", insert: "ln(" },
-  ],
   algebra: [
     { label: "√", insert: "sqrt(" },
     { label: "x²", insert: "^2" },

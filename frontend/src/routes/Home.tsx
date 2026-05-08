@@ -11,20 +11,25 @@ import { scoreFor, storage, type Result } from "../lib/storage";
 import type { Category, Level, Mode, PublicPuzzle, TodaySummary } from "../lib/types";
 
 const CATEGORY_NAMES: Record<Category, string> = {
-  arithmetic: "Arithmetic",
   algebra: "Algebra",
   geometry: "Geometry",
   numbers: "Number Theory",
   logic: "Logic & Sequences",
   probability: "Probability",
   calculus: "Calculus",
-  words: "Word Problems",
-  diffeq: "Differential Eq.",
   theory: "Theory",
 };
 
 const LEVELS: Level[] = [1, 2, 3];
 const ROMAN: Record<Level, string> = { 1: "I", 2: "II", 3: "III" };
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "TEXTAREA") return true;
+  if (tag === "INPUT") return !(target as HTMLInputElement).disabled;
+  return target.isContentEditable;
+}
 
 function formatHeaderDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
@@ -46,6 +51,18 @@ export default function Home() {
       .today()
       .then(setToday)
       .catch((e: ApiError) => setError(e.code));
+  }, []);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
+      if (e.key === "1") setLevel(1);
+      else if (e.key === "2") setLevel(2);
+      else if (e.key === "3") setLevel(3);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   if (error) {
@@ -232,6 +249,54 @@ function SolveOne({
       .catch((e: ApiError) => setError(e.code));
   }, [date, category, level]);
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!puzzle) return;
+
+      if (e.key === "Enter" && state === "correct" && level < 3) {
+        e.preventDefault();
+        onAdvance();
+        return;
+      }
+
+      if (isTypingTarget(e.target)) return;
+
+      const k = e.key.toLowerCase();
+
+      if (k === "h" && state === "solving" && hintsRevealed < puzzle.hints.length) {
+        e.preventDefault();
+        const next = hintsRevealed + 1;
+        setHintsRevealed(next);
+        storage.recordProgress(date, category, level, { hints: next, wrong, mode });
+        return;
+      }
+
+      if (
+        k === "m" &&
+        state === "solving" &&
+        puzzle.free_input != null &&
+        puzzle.choices != null
+      ) {
+        e.preventDefault();
+        setMode(mode === "free" ? "choice" : "free");
+        setVal("");
+        setPicked(null);
+        return;
+      }
+
+      if (mode === "choice" && state === "solving" && puzzle.choices) {
+        const idx = "abcdef".indexOf(k);
+        if (idx >= 0 && idx < puzzle.choices.length) {
+          e.preventDefault();
+          setPicked(puzzle.choices[idx]);
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [puzzle, state, mode, level, hintsRevealed, wrong, onAdvance, date, category]);
+
   if (error) {
     return (
       <div className="px-5 sm:px-8 lg:px-12 py-12 font-display italic text-ink-soft">
@@ -387,7 +452,7 @@ function SolveOne({
                         hover:underline underline-offset-4 decoration-accent
                         self-start"
                     >
-                      Continue to {ROMAN[(level + 1) as Level]} →
+                      Continue to {ROMAN[(level + 1) as Level]} ↵
                     </button>
                   )}
                   <ShareButton date={date} category={category} />

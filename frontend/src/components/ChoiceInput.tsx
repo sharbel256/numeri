@@ -51,9 +51,9 @@ export function ChoiceInput({
             "Choose one"
           )}
         </span>
-        <span className="text-[11px] text-ink-soft">
+        <span className="text-[32px] leading-none text-ink-soft">
           {[0, 1, 2].map((i) => (
-            <span key={i} className={`ml-1.5 ${i < wrong ? "text-accent" : "text-rule"}`}>
+            <span key={i} className={`ml-2.5 ${i < wrong ? "text-accent" : "text-rule"}`}>
               {i < wrong ? "×" : "·"}
             </span>
           ))}

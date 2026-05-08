@@ -69,17 +69,14 @@ def test_categories_for_empty_date(puzzles_dir: Path):
 
 
 def test_category_for_date_round_robin(puzzles_dir: Path):
-    # Publish all 10 categories on two consecutive days; rotation should advance.
+    # Publish all categories on two consecutive days; rotation should advance.
     all_cats = (
-        "arithmetic",
         "algebra",
         "geometry",
         "numbers",
         "logic",
         "probability",
         "calculus",
-        "words",
-        "diffeq",
         "theory",
     )
     d1 = date(2026, 5, 2)

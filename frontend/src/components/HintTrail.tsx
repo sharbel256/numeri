@@ -22,7 +22,7 @@ export function HintTrail({ hints, revealed, onRequest, canRequest, state }: Pro
 
       {revealed === 0 && state === "solving" && (
         <div className="font-display italic text-ink-soft text-sm leading-relaxed">
-          stuck? ask for a nudge — each one costs 15 points.
+          stuck? ask for a hint — each one costs 15 points.
         </div>
       )}
 
@@ -50,9 +50,11 @@ export function HintTrail({ hints, revealed, onRequest, canRequest, state }: Pro
           onClick={onRequest}
           className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink
             border border-rule bg-transparent hover:bg-paper-alt active:bg-paper-alt
-            cursor-pointer px-4 py-3.5 min-h-12 lg:mt-auto"
+            cursor-pointer px-4 py-3.5 min-h-12 lg:mt-auto
+            flex items-center justify-center gap-2"
         >
-          ask for a nudge
+          <span>ask for a hint</span>
+          <span className="text-ink-faint normal-case tracking-normal">(h)</span>
         </button>
       )}
     </aside>

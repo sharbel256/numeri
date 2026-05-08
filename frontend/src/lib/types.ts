@@ -1,15 +1,12 @@
 // Mirrors backend/app/models.py — keep in sync.
 
 export type Category =
-  | "arithmetic"
   | "algebra"
   | "geometry"
   | "numbers"
   | "logic"
   | "probability"
   | "calculus"
-  | "words"
-  | "diffeq"
   | "theory";
 
 export type InputKind = "numeric" | "expression";

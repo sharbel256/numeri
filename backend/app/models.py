@@ -4,15 +4,12 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 Category = Literal[
-    "arithmetic",
     "algebra",
     "geometry",
     "numbers",
     "logic",
     "probability",
     "calculus",
-    "words",
-    "diffeq",
     "theory",
 ]
 

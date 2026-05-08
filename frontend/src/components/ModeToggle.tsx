@@ -17,7 +17,7 @@ export function ModeToggle({ current, onSwitch }: Props) {
         decoration-rule hover:decoration-accent hover:text-accent transition-colors
         self-start mt-1"
     >
-      ↔ {label}
+      ↔ {label} <span className="text-ink-faint normal-case tracking-normal no-underline">(m)</span>
     </button>
   );
 }

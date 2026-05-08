@@ -38,11 +38,11 @@ Run from `/Users/sharbel/code/numeri`. The backend code under `backend/app/` is 
 4. **Compute rotation category for `target`:**
    ```
    epoch = date(2026, 4, 20)
-   order = ["arithmetic", "algebra", "geometry", "numbers", "logic",
-            "probability", "calculus", "words", "diffeq", "theory"]
-   category = order[(target - epoch).days % 10]
+   order = ["algebra", "geometry", "numbers", "logic",
+            "probability", "calculus", "theory"]
+   category = order[(target - epoch).days % 7]
    ```
-   Mirror `backend/app/puzzles.py:43-64` exactly. If that file changes, this constant changes with it.
+   Seven categories, one per day of the week. Mirror `backend/app/puzzles.py:43-64` exactly. If that file changes, this constant changes with it.
 5. **Read recent history:** glob `~/numeri-puzzles/*/{category}.yaml` for the 30 days preceding `target`. Skim the questions so you can avoid repeating problem shapes, specific numbers, or the same trick. Include any days you generated earlier in this same run — those count as recent history for later targets.
 
 ---
@@ -73,15 +73,10 @@ When both are set, the MC verification rules in §5b apply — your `choices` li
 
 Order rule: `choice_labels[i]` is the visual form of `choices[i]`. Don't shuffle independently. The shuffle in §5b.5 must keep them paired.
 
-### `arithmetic`
-- Mental math, fractions, percentages, ratios, sequences.
-- **Default mode:** `free` (`numeric`). Always include `choices`.
-- L3 often involves reasoning about digits, divisibility, or clever decomposition.
-
 ### `algebra`
-- Equations, polynomials, systems, inequalities, functions.
+- Equations, polynomials, systems, inequalities, functions. Also absorbs arithmetic flavor — mental math, fractions, percentages, ratios, sequences — when a level wants a lighter shape.
 - **Default mode:** `free` — `expression` if the answer is a formula (`x = 2*sqrt(3) + 1`), `numeric` if a single value. SymPy must parse it — use `**` for powers, `*` for multiplication, `sqrt(...)`, `pi`, `E`. Always include `choices`.
-- L1: quadratic, two-variable system, multi-step linear with a twist. L2: clever factoring, substitution, system that needs a non-obvious move. L3: functional equation, parameterized family, problem requiring identification of an invariant or symmetry.
+- L1: quadratic, two-variable system, multi-step linear with a twist, or an arithmetic-flavored problem about digits/divisibility/clever decomposition. L2: clever factoring, substitution, system that needs a non-obvious move. L3: functional equation, parameterized family, problem requiring identification of an invariant or symmetry.
 
 ### `geometry`
 - Angles, lengths, areas, volumes, similarity. Plane and solid both fine.
@@ -95,8 +90,9 @@ Order rule: `choice_labels[i]` is the visual form of `choices[i]`. Don't shuffle
 - L1: modular reasoning, gcd/lcm with a twist. L2: structural argument, often "find all" reduced to a single count. L3: problem combining modular arithmetic with a counting or extremal argument; competition-style.
 
 ### `logic`
-- Deductive puzzles, knights/knaves, grid logic, parity arguments.
-- **Default mode:** `choice` (3–5 options) — logic often has a small natural option set. If the question asks for a count, default to `free` (`numeric`) but still include `choices`.
+- Deductive puzzles, knights/knaves, grid logic, parity arguments. Also absorbs word problems — short real-world stories that resolve to a numerical answer — when a level wants a narrative framing.
+- **Default mode:** `choice` (3–5 options) — logic often has a small natural option set. If the question asks for a count or the level is a word problem, default to `free` (`numeric`) but still include `choices`.
+- Word-problem flavor: story should be short and unambiguous, no trick wording, double-check unit consistency.
 - Verification is harder — be extra careful and write your reasoning out fully before finalizing.
 
 ### `probability`
@@ -105,22 +101,11 @@ Order rule: `choice_labels[i]` is the visual form of `choices[i]`. Don't shuffle
 - State the sample space explicitly. Avoid ambiguity about independence, replacement, ordering.
 
 ### `calculus`
-- Derivatives, integrals, limits, optimization, series.
-- **Default mode:** `free` (`expression`, with `placeholder` like `"f'(x) ="` or `"∫ ="`). Always include `choices` — distractors are easy here (sign error, missing chain factor, off-by-one in power).
-- L1: chain/product/quotient rule, u-substitution, basic limit. L2: integration by parts, optimization with constraints, non-trivial limit. L3: trig/partial-fraction integral, series convergence with a subtle test, multi-step optimization, parametric or related-rates with a twist.
+- Derivatives, integrals, limits, optimization, series. Also absorbs differential equations — ODEs, separable, linear first-order, second-order constant-coefficient — typically at L2/L3.
+- **Default mode:** `free` (`expression`, with `placeholder` like `"f'(x) ="`, `"∫ ="`, or `"y(x) ="` for ODE solutions). Always include `choices` — distractors are easy here (sign error, missing chain factor, off-by-one in power). For open-ended ODE general solutions where superficially-equivalent forms make distractors awkward, you may omit `choices` and note it in the audit log.
+- L1: chain/product/quotient rule, u-substitution, basic limit, or a linear first-order ODE with integrating factor / simple separable IVP. L2: integration by parts, optimization with constraints, non-trivial limit, second-order constant-coefficient ODE (homogeneous + particular), Bernoulli, exact equation. L3: trig/partial-fraction integral, series convergence with a subtle test, multi-step optimization, parametric or related-rates with a twist, second-order IVP with a non-trivial forcing term, system of two ODEs, or substitution-based reduction.
+- For ODE problems, specify boundary/initial conditions explicitly when the answer is a particular solution.
 - Reference: see `~/numeri-puzzles/2026-05-03/calculus.yaml` for established style. (Note: that file pre-dates the MC-toggle policy and only has free input — your output should include choices.)
-
-### `words`
-- Word problems with a numerical answer. Real-world framing for algebra/arithmetic/geometry/probability.
-- **Default mode:** `free` — `numeric` typically; `expression` if symbolic. Always include `choices`.
-- Story should be short and unambiguous. No trick wording.
-- Verification: re-derive from the story; double-check unit consistency.
-
-### `diffeq`
-- Differential equations: ODEs, separable, linear first-order, second-order constant-coefficient.
-- **Default mode:** `free` (`expression` for general/particular solutions). Include `choices` when distractors are credible — this is one category where an open-ended general solution may have so many superficially-equivalent forms that distractors get awkward; if so, omit `choices` and note in the audit log.
-- L1: linear first-order with integrating factor, simple separable IVP. L2: second-order constant-coefficient (homogeneous + particular), Bernoulli, exact equation. L3: second-order IVP with a non-trivial forcing term, system of two ODEs, or substitution-based reduction.
-- Specify boundary/initial conditions explicitly when the answer is a particular solution.
 
 ### `theory`
 - Set theory, abstract algebra (groups), graph theory, combinatorial identities, proofs reduced to a count.
@@ -159,7 +144,7 @@ def equiv_num(a: str, b: str, tol: float = 1e-6) -> bool:
 
 Solve the puzzle in code (or by independent hand calculation, then encode the result), then assert `equiv_expr(stored_answer, computed_answer)` for `expression` kind, or `equiv_num(...)` for `numeric` kind.
 
-If the category resists symbolic solving (logic, words, some probability), solve it twice by hand using two different framings and confirm they agree.
+If the category resists symbolic solving (logic, some probability), solve it twice by hand using two different framings and confirm they agree.
 
 ### 5b. Multiple-choice — extra checks (apply whenever `choices` is set)
 
@@ -257,7 +242,7 @@ Pattern (calculus L3 in `~/numeri-puzzles/2026-05-03/calculus.yaml` is a good te
 
 ## 10. Quick reference
 
-- Categories (in rotation order): `arithmetic, algebra, geometry, numbers, logic, probability, calculus, words, diffeq, theory`
+- Categories (in rotation order): `algebra, geometry, numbers, logic, probability, calculus, theory`
 - Rotation epoch: `2026-04-20` (`backend/app/puzzles.py:43`)
 - Output dir: `~/numeri-puzzles/{YYYY-MM-DD}/{category}.yaml`
 - Audit log: `~/numeri-puzzles/_generation_log.md`
