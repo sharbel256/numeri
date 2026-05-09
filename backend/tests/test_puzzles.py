@@ -106,9 +106,17 @@ def test_category_for_date_none_when_empty(puzzles_dir: Path):
     assert category_for_date(date(2099, 1, 1), puzzles_dir) is None
 
 
-def test_invalid_default_mode_rejected(puzzles_dir: Path):
+def test_choices_required(puzzles_dir: Path):
     levels = basic_levels()
-    levels[1]["default_mode"] = "choice"  # but no choices defined
+    del levels[1]["choices"]
     write_category(puzzles_dir, date(2026, 5, 4), "algebra", levels)
     with pytest.raises(ValueError):
         load_category(date(2026, 5, 4), "algebra", puzzles_dir)
+
+
+def test_choice_labels_length_mismatch_rejected(puzzles_dir: Path):
+    levels = basic_levels()
+    levels[1]["choice_labels"] = ["$5$", "$1$"]  # only 2, but choices has 4
+    write_category(puzzles_dir, date(2026, 5, 5), "algebra", levels)
+    with pytest.raises(ValueError):
+        load_category(date(2026, 5, 5), "algebra", puzzles_dir)

@@ -10,22 +10,18 @@ def _seed(puzzles_dir, d=date(2026, 5, 2), category="algebra"):
         1: {
             "question": "easy",
             "answer": "5",
-            "free_input": {"kind": "numeric"},
-            "default_mode": "free",
+            "choices": ["3", "5", "7", "8"],
         },
         2: {
             "question": "medium",
             "answer": "5",
-            "free_input": {"kind": "numeric"},
             "choices": ["3", "5", "7", "8"],
-            "default_mode": "free",
             "hints": [{"text": "subtract 7", "cost": 15}],
         },
         3: {
             "question": "hard",
             "answer": "3",
-            "free_input": {"kind": "numeric"},
-            "default_mode": "free",
+            "choices": ["1", "2", "3", "4"],
         },
     }
     write_category(puzzles_dir, d, category, levels)
@@ -63,7 +59,7 @@ def test_get_puzzle(client: TestClient, puzzles_dir):
     body = res.json()
     assert body["category"] == "algebra"
     assert body["level"] == 2
-    assert body["default_mode"] == "free"
+    assert body["choices"] == ["3", "5", "7", "8"]
     assert "answer" not in body
 
 

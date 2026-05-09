@@ -1,6 +1,6 @@
 // localStorage-backed streak + per-(date,category,level) results. Single-player only.
 
-import type { Category, Level, Mode } from "./types";
+import type { Category, Level } from "./types";
 
 const KEY = "numeri.state.v3";
 
@@ -13,13 +13,11 @@ export interface Result {
   wrong: number;
   score: number;
   answer: string;
-  mode: Mode;
 }
 
 export interface Progress {
   hints: number;
   wrong: number;
-  mode: Mode;
 }
 
 interface State {

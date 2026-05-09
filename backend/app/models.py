@@ -13,14 +13,7 @@ Category = Literal[
     "theory",
 ]
 
-InputKind = Literal["numeric", "expression"]
-Mode = Literal["free", "choice"]
 Level = Literal[1, 2, 3]
-
-
-class FreeInput(BaseModel):
-    kind: InputKind
-    placeholder: str | None = None
 
 
 class Hint(BaseModel):
@@ -33,26 +26,15 @@ class Difficulty(BaseModel):
 
     question: str
     answer: str
-    free_input: FreeInput | None = None
-    choices: list[str] | None = Field(default=None, min_length=2, max_length=6)
+    choices: list[str] = Field(min_length=2, max_length=6)
     choice_labels: list[str] | None = None
-    default_mode: Mode
     hints: list[Hint] = Field(default_factory=list)
     walkthrough: str | None = None
 
     @model_validator(mode="after")
-    def _validate_modes(self) -> "Difficulty":
-        if self.free_input is None and self.choices is None:
-            raise ValueError("difficulty must define at least one of free_input or choices")
-        if self.default_mode == "free" and self.free_input is None:
-            raise ValueError("default_mode='free' requires free_input")
-        if self.default_mode == "choice" and self.choices is None:
-            raise ValueError("default_mode='choice' requires choices")
-        if self.choice_labels is not None:
-            if self.choices is None:
-                raise ValueError("choice_labels requires choices")
-            if len(self.choice_labels) != len(self.choices):
-                raise ValueError("choice_labels must have the same length as choices")
+    def _validate_choice_labels(self) -> "Difficulty":
+        if self.choice_labels is not None and len(self.choice_labels) != len(self.choices):
+            raise ValueError("choice_labels must have the same length as choices")
         return self
 
 
@@ -77,10 +59,8 @@ class PublicPuzzle(BaseModel):
     category: Category
     level: Level
     question: str
-    free_input: FreeInput | None
-    choices: list[str] | None
+    choices: list[str]
     choice_labels: list[str] | None
-    default_mode: Mode
     hints: list[Hint]
     walkthrough: str | None
 

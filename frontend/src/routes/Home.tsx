@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { ChoiceInput } from "../components/ChoiceInput";
-import { FreeInput } from "../components/FreeInput";
 import { HintTrail } from "../components/HintTrail";
 import { Latex } from "../components/Latex";
-import { ModeToggle } from "../components/ModeToggle";
 import { api, ApiError } from "../lib/api";
-import { PALETTES } from "../lib/palettes";
 import { scoreFor, storage, type Result } from "../lib/storage";
-import type { Category, Level, Mode, PublicPuzzle, TodaySummary } from "../lib/types";
+import type { Category, Level, PublicPuzzle, TodaySummary } from "../lib/types";
 
 const CATEGORY_NAMES: Record<Category, string> = {
   algebra: "Algebra",
@@ -214,8 +211,6 @@ function SolveOne({
 }) {
   const [puzzle, setPuzzle] = useState<PublicPuzzle | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>("free");
-  const [val, setVal] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const [hintsRevealed, setHintsRevealed] = useState(0);
   const [wrong, setWrong] = useState(0);
@@ -229,20 +224,15 @@ function SolveOne({
         setPuzzle(p);
         const prior = storage.resultFor(date, category, level);
         if (prior) {
-          setMode(prior.mode);
           setHintsRevealed(prior.hints);
           setWrong(prior.wrong);
           setState(prior.correct ? "correct" : "failed");
-          if (prior.mode === "free") setVal(prior.answer);
-          else setPicked(prior.answer);
+          setPicked(prior.answer);
         } else {
           const progress = storage.progressFor(date, category, level);
           if (progress) {
-            setMode(progress.mode);
             setHintsRevealed(progress.hints);
             setWrong(progress.wrong);
-          } else {
-            setMode(p.default_mode);
           }
         }
       })
@@ -268,24 +258,11 @@ function SolveOne({
         e.preventDefault();
         const next = hintsRevealed + 1;
         setHintsRevealed(next);
-        storage.recordProgress(date, category, level, { hints: next, wrong, mode });
+        storage.recordProgress(date, category, level, { hints: next, wrong });
         return;
       }
 
-      if (
-        k === "m" &&
-        state === "solving" &&
-        puzzle.free_input != null &&
-        puzzle.choices != null
-      ) {
-        e.preventDefault();
-        setMode(mode === "free" ? "choice" : "free");
-        setVal("");
-        setPicked(null);
-        return;
-      }
-
-      if (mode === "choice" && state === "solving" && puzzle.choices) {
+      if (state === "solving") {
         const idx = "abcdef".indexOf(k);
         if (idx >= 0 && idx < puzzle.choices.length) {
           e.preventDefault();
@@ -295,7 +272,7 @@ function SolveOne({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [puzzle, state, mode, level, hintsRevealed, wrong, onAdvance, date, category]);
+  }, [puzzle, state, level, hintsRevealed, wrong, onAdvance, date, category]);
 
   if (error) {
     return (
@@ -308,7 +285,6 @@ function SolveOne({
   if (!puzzle) return null;
 
   const score = scoreFor(hintsRevealed, wrong);
-  const hasBothModes = puzzle.free_input != null && puzzle.choices != null;
 
   async function trySubmit(candidate: string) {
     if (!puzzle) return;
@@ -325,7 +301,6 @@ function SolveOne({
           wrong,
           score,
           answer: candidate,
-          mode,
         });
       } else {
         const newWrong = wrong + 1;
@@ -335,7 +310,6 @@ function SolveOne({
         storage.recordProgress(date, category, level, {
           hints: hintsRevealed,
           wrong: newWrong,
-          mode,
         });
         if (newWrong >= 3) {
           setState("failed");
@@ -348,10 +322,7 @@ function SolveOne({
             wrong: newWrong,
             score: 0,
             answer: candidate,
-            mode,
           });
-        } else if (mode === "free") {
-          setVal("");
         } else {
           setPicked(null);
         }
@@ -362,10 +333,6 @@ function SolveOne({
     }
   }
 
-  function submitFree() {
-    if (val.trim()) trySubmit(val);
-  }
-
   function submitChoice() {
     if (picked != null) trySubmit(picked);
   }
@@ -374,7 +341,7 @@ function SolveOne({
     if (puzzle && hintsRevealed < puzzle.hints.length) {
       const next = hintsRevealed + 1;
       setHintsRevealed(next);
-      storage.recordProgress(date, category, level, { hints: next, wrong, mode });
+      storage.recordProgress(date, category, level, { hints: next, wrong });
     }
   }
 
@@ -400,42 +367,17 @@ function SolveOne({
           />
 
           <div className={`flex flex-col gap-3 ${shake ? "animate-shake" : ""}`}>
-            {mode === "free" && puzzle.free_input ? (
-              <FreeInput
-                config={puzzle.free_input}
-                value={val}
-                onChange={setVal}
-                onSubmit={submitFree}
-                disabled={state !== "solving"}
-                state={state}
-                wrong={wrong}
-                score={score}
-                palette={PALETTES[category]}
-              />
-            ) : puzzle.choices ? (
-              <ChoiceInput
-                choices={puzzle.choices}
-                labels={puzzle.choice_labels}
-                picked={picked}
-                correctAnswer={null}
-                onPick={setPicked}
-                onSubmit={submitChoice}
-                disabled={state !== "solving"}
-                state={state}
-                wrong={wrong}
-              />
-            ) : null}
-
-            {hasBothModes && state === "solving" && (
-              <ModeToggle
-                current={mode}
-                onSwitch={(m) => {
-                  setMode(m);
-                  setVal("");
-                  setPicked(null);
-                }}
-              />
-            )}
+            <ChoiceInput
+              choices={puzzle.choices}
+              labels={puzzle.choice_labels}
+              picked={picked}
+              correctAnswer={null}
+              onPick={setPicked}
+              onSubmit={submitChoice}
+              disabled={state !== "solving"}
+              state={state}
+              wrong={wrong}
+            />
 
             {state === "correct" && (
               <div className="flex flex-col gap-3 pt-1">

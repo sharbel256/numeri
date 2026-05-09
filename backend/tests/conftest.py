@@ -50,23 +50,9 @@ def write_category(puzzles_dir: Path, d: date, category: str, levels: dict[int, 
 
 def basic_levels(answer: str = "5") -> dict[int, dict]:
     """Three minimal valid difficulty entries."""
+    choices = [answer, "1", "2", "3"] if answer not in {"1", "2", "3"} else [answer, "9", "8", "7"]
     return {
-        1: {
-            "question": "easy",
-            "answer": answer,
-            "free_input": {"kind": "numeric"},
-            "default_mode": "free",
-        },
-        2: {
-            "question": "medium",
-            "answer": answer,
-            "free_input": {"kind": "numeric"},
-            "default_mode": "free",
-        },
-        3: {
-            "question": "hard",
-            "answer": answer,
-            "free_input": {"kind": "numeric"},
-            "default_mode": "free",
-        },
+        1: {"question": "easy", "answer": answer, "choices": choices},
+        2: {"question": "medium", "answer": answer, "choices": choices},
+        3: {"question": "hard", "answer": answer, "choices": choices},
     }

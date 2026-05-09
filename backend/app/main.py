@@ -10,9 +10,7 @@ from ulid import ULID
 
 from app.config import get_settings
 from app.exceptions import (
-    InvalidExpression,
     PuzzleNotFound,
-    invalid_expression_handler,
     puzzle_not_found_handler,
     unhandled_exception_handler,
 )
@@ -57,7 +55,6 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestIdMiddleware)
 
     app.add_exception_handler(PuzzleNotFound, puzzle_not_found_handler)
-    app.add_exception_handler(InvalidExpression, invalid_expression_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)
 
     app.include_router(router)
