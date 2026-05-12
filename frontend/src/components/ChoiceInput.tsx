@@ -114,14 +114,7 @@ export function ChoiceInput({
                 {letter}
               </span>
               <FitText className="relative pr-3 min-w-0">
-                {/* TEMP DEBUG: wide formula to test FitText scaling */}
-                <Latex
-                  inline
-                  source={`$\\int_{-\\infty}^{\\infty} e^{-x^2/2}\\,dx \\cdot \\sum_{n=1}^{\\infty}\\frac{(-1)^{n+1}}{n^{${idx + 2}}} = \\sqrt{2\\pi}\\,\\zeta(${idx + 2})$`}
-                  className="font-display text-lg sm:text-xl"
-                />
-                {void labels}
-                {/* {labels && labels[idx] ? (
+                {labels && labels[idx] ? (
                   <Latex
                     inline
                     source={labels[idx]}
@@ -131,7 +124,7 @@ export function ChoiceInput({
                   <span className="font-mono font-medium text-lg sm:text-xl">
                     {opt}
                   </span>
-                )} */}
+                )}
               </FitText>
             </button>
           );
