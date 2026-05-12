@@ -5,7 +5,13 @@ import { HintTrail } from "../components/HintTrail";
 import { Latex } from "../components/Latex";
 import { api, ApiError } from "../lib/api";
 import { scoreFor, storage, type Result } from "../lib/storage";
-import type { Category, Level, PublicPuzzle, TodaySummary } from "../lib/types";
+import type {
+  Category,
+  Level,
+  PublicPuzzle,
+  StatsResponse,
+  TodaySummary,
+} from "../lib/types";
 
 const CATEGORY_NAMES: Record<Category, string> = {
   algebra: "Algebra",
@@ -28,6 +34,11 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return target.isContentEditable;
 }
 
+function readLevelFromHash(): Level {
+  const n = Number(window.location.hash.replace(/^#/, ""));
+  return n === 2 || n === 3 ? n : 1;
+}
+
 function formatHeaderDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
@@ -41,13 +52,26 @@ function formatHeaderDate(iso: string): string {
 export default function Home() {
   const [today, setToday] = useState<TodaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [level, setLevel] = useState<Level>(1);
+  const [level, setLevelState] = useState<Level>(readLevelFromHash);
+
+  const setLevel = (l: Level) => {
+    setLevelState(l);
+    window.history.replaceState(null, "", `#${l}`);
+  };
 
   useEffect(() => {
     api
       .today()
       .then(setToday)
       .catch((e: ApiError) => setError(e.code));
+  }, []);
+
+  useEffect(() => {
+    function onHashChange() {
+      setLevelState(readLevelFromHash());
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   useEffect(() => {
@@ -173,30 +197,10 @@ function buildShareText(
   ].join("\n");
 }
 
-function ShareButton({ date, category }: { date: string; category: Category }) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    const state = storage.get();
-    const text = buildShareText(date, category, state.results, state.streak);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-  return (
-    <button
-      type="button"
-      onClick={copy}
-      className="font-mono text-[11px] uppercase tracking-[0.16em] text-accent
-        hover:underline underline-offset-4 decoration-accent self-start"
-    >
-      {copied ? "Copied" : "Share"}
-    </button>
-  );
-}
+const ACTION_BTN =
+  "font-mono text-[11px] uppercase tracking-[0.16em] text-ink " +
+  "border border-ink px-3 py-2 cursor-pointer " +
+  "hover:bg-ink hover:text-paper transition-colors";
 
 function SolveOne({
   date,
@@ -216,6 +220,21 @@ function SolveOne({
   const [wrong, setWrong] = useState(0);
   const [state, setState] = useState<SolveState>("solving");
   const [shake, setShake] = useState(false);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
+
+  async function doShare() {
+    const s = storage.get();
+    const text = buildShareText(date, category, s.results, s.streak);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
 
   useEffect(() => {
     api
@@ -240,6 +259,22 @@ function SolveOne({
   }, [date, category, level]);
 
   useEffect(() => {
+    if (state === "solving") return;
+    let cancelled = false;
+    api
+      .stats(date, category, level)
+      .then((s) => {
+        if (!cancelled) setStats(s);
+      })
+      .catch(() => {
+        /* stats are optional — silently skip on failure */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [state, date, category, level]);
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (!puzzle) return;
@@ -262,6 +297,19 @@ function SolveOne({
         return;
       }
 
+      if (state === "correct") {
+        if (k === "w" && puzzle.walkthrough && !showWalkthrough) {
+          e.preventDefault();
+          setShowWalkthrough(true);
+          return;
+        }
+        if (k === "c") {
+          e.preventDefault();
+          doShare();
+          return;
+        }
+      }
+
       if (state === "solving") {
         const idx = "abcdef".indexOf(k);
         if (idx >= 0 && idx < puzzle.choices.length) {
@@ -272,7 +320,7 @@ function SolveOne({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [puzzle, state, level, hintsRevealed, wrong, onAdvance, date, category]);
+  }, [puzzle, state, level, hintsRevealed, wrong, onAdvance, date, category, showWalkthrough]);
 
   if (error) {
     return (
@@ -377,6 +425,7 @@ function SolveOne({
               disabled={state !== "solving"}
               state={state}
               wrong={wrong}
+              stats={stats}
             />
 
             {state === "correct" && (
@@ -385,24 +434,31 @@ function SolveOne({
                   Solved with {hintsRevealed} hint{hintsRevealed !== 1 ? "s" : ""} and {wrong} wrong
                   attempt{wrong !== 1 ? "s" : ""}.
                 </div>
-                <div className="flex items-center gap-5">
+                <div className="flex flex-wrap items-center gap-3">
                   {level < 3 && (
-                    <button
-                      type="button"
-                      onClick={onAdvance}
-                      className="font-mono text-[11px] uppercase tracking-[0.16em] text-accent
-                        hover:underline underline-offset-4 decoration-accent
-                        self-start"
-                    >
-                      Continue to {ROMAN[(level + 1) as Level]} ↵
+                    <button type="button" onClick={onAdvance} className={ACTION_BTN}>
+                      Continue to {ROMAN[(level + 1) as Level]}{" "}
+                      <span className="opacity-60 ml-1.5">↵</span>
                     </button>
                   )}
-                  <ShareButton date={date} category={category} />
+                  {puzzle.walkthrough && !showWalkthrough && (
+                    <button
+                      type="button"
+                      onClick={() => setShowWalkthrough(true)}
+                      className={ACTION_BTN}
+                    >
+                      Show walkthrough <span className="opacity-60 ml-1.5">W</span>
+                    </button>
+                  )}
+                  <button type="button" onClick={doShare} className={ACTION_BTN}>
+                    {copied ? "Copied" : "Copy"}{" "}
+                    <span className="opacity-60 ml-1.5">C</span>
+                  </button>
                 </div>
               </div>
             )}
 
-            {state === "failed" && puzzle.walkthrough && (
+            {((state === "failed") || (state === "correct" && showWalkthrough)) && puzzle.walkthrough && (
               <div className="bg-paper-alt border-l-2 border-accent px-5 py-4 mt-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft mb-2">
                   Walkthrough

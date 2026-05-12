@@ -4,17 +4,20 @@ import { useMemo } from "react";
 interface Props {
   source: string;
   className?: string;
+  inline?: boolean;
 }
 
 // Renders text containing inline ($...$) and block ($$...$$) LaTeX via KaTeX.
 // Plain prose between math is rendered as-is, preserving line breaks.
-export function Latex({ source, className }: Props) {
+// Pass `inline` for single-line contexts (e.g. a choice cell) so KaTeX bases
+// can't soft-wrap between operators.
+export function Latex({ source, className, inline }: Props) {
   const html = useMemo(() => renderMixed(source), [source]);
   return (
     <div
       className={className}
       dangerouslySetInnerHTML={{ __html: html }}
-      style={{ whiteSpace: "pre-wrap" }}
+      style={{ whiteSpace: inline ? "nowrap" : "pre-wrap" }}
     />
   );
 }

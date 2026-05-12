@@ -79,3 +79,8 @@ class CheckRequest(BaseModel):
 
 class CheckResponse(BaseModel):
     correct: bool
+
+
+class StatsResponse(BaseModel):
+    counts: dict[str, int]
+    total: int

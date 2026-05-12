@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import type { StatsResponse } from "../lib/types";
+import { FitText } from "./FitText";
 import { Latex } from "./Latex";
 
 interface Props {
@@ -12,6 +14,7 @@ interface Props {
   disabled: boolean;
   state: "solving" | "correct" | "failed";
   wrong: number;
+  stats?: StatsResponse | null;
 }
 
 export function ChoiceInput({
@@ -24,6 +27,7 @@ export function ChoiceInput({
   disabled,
   state,
   wrong,
+  stats,
 }: Props) {
   useEffect(() => {
     if (state !== "solving") return;
@@ -36,6 +40,18 @@ export function ChoiceInput({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [state, picked, onSubmit]);
+
+  const [barsAnimated, setBarsAnimated] = useState(false);
+  useEffect(() => {
+    if (!stats || stats.total === 0) {
+      setBarsAnimated(false);
+      return;
+    }
+    const id = requestAnimationFrame(() => setBarsAnimated(true));
+    return () => cancelAnimationFrame(id);
+  }, [stats]);
+
+  const showBars = stats != null && stats.total > 0 && state !== "solving";
   return (
     <div className="flex flex-col gap-3 max-w-[620px]">
       <div className="flex items-baseline justify-between font-mono">
@@ -70,34 +86,53 @@ export function ChoiceInput({
             (state === "correct" && isPicked);
           const isWrongPick = isPicked && state === "failed" && !isCorrect;
           const accent = isCorrect || isSelected;
+          const pct =
+            showBars && stats ? ((stats.counts[opt] ?? 0) / stats.total) * 100 : 0;
           return (
             <button
               key={opt}
               disabled={disabled}
               onClick={() => onPick(opt)}
-              className={`grid grid-cols-[32px_1fr] items-center gap-3.5 text-left
+              className={`relative overflow-hidden grid grid-cols-[32px_1fr] items-center gap-3.5 text-left
                 border min-h-[60px] sm:min-h-[auto] py-4 sm:py-3 transition-all
                 ${isCorrect ? "bg-accent-soft animate-glow-pulse" : isSelected ? "bg-paper-alt" : ""}
                 ${accent ? "border-accent" : "border-rule"}
                 ${isWrongPick ? "opacity-40" : "opacity-100"}
                 ${disabled ? "cursor-default" : "cursor-pointer hover:bg-paper-alt active:bg-paper-alt"}`}
             >
+              {showBars && (
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 bg-accent/15 pointer-events-none transition-[width] duration-700 ease-out"
+                  style={{ width: `${barsAnimated ? pct : 0}%` }}
+                />
+              )}
               <span
-                className={`font-mono font-medium text-center h-full flex items-center justify-center border-r
+                className={`relative font-mono font-medium text-center h-full flex items-center justify-center border-r
                   ${accent ? "text-accent border-accent" : "text-ink-soft border-rule"}`}
               >
                 {letter}
               </span>
-              {labels && labels[idx] ? (
+              <FitText className="relative pr-3 min-w-0">
+                {/* TEMP DEBUG: wide formula to test FitText scaling */}
                 <Latex
-                  source={labels[idx]}
-                  className="font-display text-lg sm:text-xl pr-3 min-w-0 overflow-x-auto"
+                  inline
+                  source={`$\\int_{-\\infty}^{\\infty} e^{-x^2/2}\\,dx \\cdot \\sum_{n=1}^{\\infty}\\frac{(-1)^{n+1}}{n^{${idx + 2}}} = \\sqrt{2\\pi}\\,\\zeta(${idx + 2})$`}
+                  className="font-display text-lg sm:text-xl"
                 />
-              ) : (
-                <span className="font-mono font-medium text-lg sm:text-xl pr-3 min-w-0 overflow-x-auto">
-                  {opt}
-                </span>
-              )}
+                {void labels}
+                {/* {labels && labels[idx] ? (
+                  <Latex
+                    inline
+                    source={labels[idx]}
+                    className="font-display text-lg sm:text-xl"
+                  />
+                ) : (
+                  <span className="font-mono font-medium text-lg sm:text-xl">
+                    {opt}
+                  </span>
+                )} */}
+              </FitText>
             </button>
           );
         })}

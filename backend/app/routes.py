@@ -4,6 +4,7 @@ from typing import Annotated, cast
 import structlog
 from fastapi import APIRouter, Depends, Path
 
+from app import stats
 from app.config import Settings, get_settings
 from app.equivalence import check as check_answer
 from app.exceptions import PuzzleNotFound
@@ -13,6 +14,7 @@ from app.models import (
     CheckResponse,
     Level,
     PublicPuzzle,
+    StatsResponse,
     TodaySummary,
 )
 from app.puzzles import category_for_date, load_category, to_public, today_utc
@@ -53,6 +55,7 @@ def check(req: CheckRequest, settings: Settings = Depends(get_settings)) -> Chec
     if req.level not in day.levels:
         raise PuzzleNotFound(f"{req.date.isoformat()}/{req.category}/{req.level}")
     correct = check_answer(day.levels[req.level], req.answer)
+    stats.record(req.date, req.category, req.level, req.answer)
     log.info(
         "answer.checked",
         date=req.date.isoformat(),
@@ -61,3 +64,14 @@ def check(req: CheckRequest, settings: Settings = Depends(get_settings)) -> Chec
         correct=correct,
     )
     return CheckResponse(correct=correct)
+
+
+@router.get("/stats/{date}/{category}/{level}", response_model=StatsResponse)
+def get_stats(
+    date: date_type,
+    category: Category,
+    level: Annotated[int, Path(ge=1, le=3)],
+) -> StatsResponse:
+    typed_level = cast(Level, level)
+    counts = stats.get(date, category, typed_level)
+    return StatsResponse(counts=counts, total=sum(counts.values()))

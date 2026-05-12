@@ -35,3 +35,8 @@ export interface TodaySummary {
 export interface CheckResponse {
   correct: boolean;
 }
+
+export interface StatsResponse {
+  counts: Record<string, number>;
+  total: number;
+}

@@ -1,4 +1,11 @@
-import type { Category, CheckResponse, Level, PublicPuzzle, TodaySummary } from "./types";
+import type {
+  Category,
+  CheckResponse,
+  Level,
+  PublicPuzzle,
+  StatsResponse,
+  TodaySummary,
+} from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -31,4 +38,6 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ date, category, level, answer }),
     }),
+  stats: (date: string, category: Category, level: Level) =>
+    request<StatsResponse>(`/api/stats/${date}/${category}/${level}`),
 };
