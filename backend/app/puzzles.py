@@ -1,15 +1,18 @@
 from datetime import UTC, datetime
 from datetime import date as date_type
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import yaml
 
 from app.exceptions import PuzzleNotFound
 from app.models import Category, CategoryDay, Level, PublicPuzzle
 
+_CHICAGO = ZoneInfo("America/Chicago")
 
-def today_utc() -> date_type:
-    return datetime.now(UTC).date()
+
+def today_chicago() -> date_type:
+    return datetime.now(UTC).astimezone(_CHICAGO).date()
 
 
 def _path_for(date: date_type, category: Category, puzzles_dir: Path) -> Path:
@@ -48,7 +51,7 @@ def category_for_date(date: date_type, puzzles_dir: Path) -> Category | None:
     """Round-robin through the canonical category order, one slot per day.
 
     Why: predictable cadence — users can anticipate tomorrow's category and the
-    rotation is identical for everyone on a given UTC date.
+    rotation is identical for everyone on a given Chicago date.
     How to apply: if the rotation lands on a category with no puzzle published
     for `date`, fall through to the next available category so the day still
     has content rather than going dark.
@@ -76,6 +79,6 @@ def to_public(day: CategoryDay, level: Level) -> PublicPuzzle:
         question=d.question,
         choices=d.choices,
         choice_labels=d.choice_labels,
-        hints=d.hints,
+        pitfalls=d.pitfalls,
         walkthrough=d.walkthrough,
     )

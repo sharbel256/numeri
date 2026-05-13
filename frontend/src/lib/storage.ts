@@ -9,14 +9,13 @@ export interface Result {
   category: Category;
   level: Level;
   correct: boolean;
-  hints: number;
+  pitfalls: number;
   wrong: number;
-  score: number;
   answer: string;
 }
 
 export interface Progress {
-  hints: number;
+  pitfalls: number;
   wrong: number;
 }
 
@@ -87,7 +86,3 @@ export const storage = {
     return s;
   },
 };
-
-export function scoreFor(hints: number, wrong: number): number {
-  return Math.max(0, 100 - hints * 15 - wrong * 10);
-}

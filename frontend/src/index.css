@@ -11,6 +11,10 @@
   --color-rule: #d9cdb6;
   --color-accent: #b85429;
   --color-accent-soft: #e8c4ac;
+  --color-success: #3d7a3d;
+  --color-success-soft: #cce0bf;
+  --color-wrong: #a33a3a;
+  --color-wrong-soft: #ecc8c8;
 
   --font-display: "Fraunces", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
@@ -30,6 +34,10 @@
   --color-rule: #1f3a52;
   --color-accent: #e89a6b;
   --color-accent-soft: #2a1c12;
+  --color-success: #7dd17f;
+  --color-success-soft: #142a18;
+  --color-wrong: #d97070;
+  --color-wrong-soft: #2a1414;
 }
 
 html,
@@ -92,13 +100,13 @@ body {
 
 @keyframes glow-pulse {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 55%, transparent);
   }
   70% {
-    box-shadow: 0 0 0 22px color-mix(in srgb, var(--color-accent) 0%, transparent);
+    box-shadow: 0 0 0 22px color-mix(in srgb, var(--color-success) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 0%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 0%, transparent);
   }
 }
 

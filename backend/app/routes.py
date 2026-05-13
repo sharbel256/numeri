@@ -17,7 +17,7 @@ from app.models import (
     StatsResponse,
     TodaySummary,
 )
-from app.puzzles import category_for_date, load_category, to_public, today_utc
+from app.puzzles import category_for_date, load_category, to_public, today_chicago
 
 router = APIRouter(prefix="/api")
 log = structlog.get_logger()
@@ -25,7 +25,7 @@ log = structlog.get_logger()
 
 @router.get("/today", response_model=TodaySummary)
 def get_today(settings: Settings = Depends(get_settings)) -> TodaySummary:
-    today = today_utc()
+    today = today_chicago()
     category = category_for_date(today, settings.puzzles_dir)
     log.info("today.fetched", date=today.isoformat(), category=category)
     return TodaySummary(date=today, category=category)

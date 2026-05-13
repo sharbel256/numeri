@@ -1,6 +1,6 @@
 """In-memory tally of submitted answers for today's puzzles only.
 
-Wipes on UTC date rollover. Lost on process restart. Single-process only —
+Wipes on Chicago date rollover. Lost on process restart. Single-process only —
 if you ever run multiple workers, swap this for shared storage (sqlite, redis).
 """
 

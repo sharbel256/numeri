@@ -16,11 +16,6 @@ Category = Literal[
 Level = Literal[1, 2, 3]
 
 
-class Hint(BaseModel):
-    text: str
-    cost: int = Field(default=15, ge=0, le=100)
-
-
 class Difficulty(BaseModel):
     """A puzzle at a single difficulty level. Holds the answer."""
 
@@ -28,7 +23,7 @@ class Difficulty(BaseModel):
     answer: str
     choices: list[str] = Field(min_length=2, max_length=6)
     choice_labels: list[str] | None = None
-    hints: list[Hint] = Field(default_factory=list)
+    pitfalls: list[str] = Field(default_factory=list)
     walkthrough: str | None = None
 
     @model_validator(mode="after")
@@ -49,6 +44,8 @@ class CategoryDay(BaseModel):
     def _all_levels_present(self) -> "CategoryDay":
         if set(self.levels.keys()) != {1, 2, 3}:
             raise ValueError("levels must contain exactly 1, 2, 3")
+        if self.levels[1].pitfalls:
+            raise ValueError("level 1 must not have pitfalls")
         return self
 
 
@@ -61,7 +58,7 @@ class PublicPuzzle(BaseModel):
     question: str
     choices: list[str]
     choice_labels: list[str] | None
-    hints: list[Hint]
+    pitfalls: list[str]
     walkthrough: str | None
 
 

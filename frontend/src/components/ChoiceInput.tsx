@@ -9,6 +9,7 @@ interface Props {
   labels?: string[] | null;
   picked: string | null;
   correctAnswer: string | null;
+  wrongFlash?: string | null;
   onPick: (choice: string) => void;
   onSubmit: () => void;
   disabled: boolean;
@@ -22,6 +23,7 @@ export function ChoiceInput({
   labels,
   picked,
   correctAnswer,
+  wrongFlash,
   onPick,
   onSubmit,
   disabled,
@@ -58,7 +60,7 @@ export function ChoiceInput({
         <span className="text-[10px] uppercase tracking-[0.16em] text-ink-soft">
           {state === "correct" ? (
             <>
-              <span className="text-accent inline-block animate-pop mr-1.5">✓</span>
+              <span className="text-success inline-block animate-pop mr-1.5">✓</span>
               Solved
             </>
           ) : state === "failed" ? (
@@ -69,7 +71,7 @@ export function ChoiceInput({
         </span>
         <span className="text-[32px] leading-none text-ink-soft">
           {[0, 1, 2].map((i) => (
-            <span key={i} className={`ml-2.5 ${i < wrong ? "text-accent" : "text-rule"}`}>
+            <span key={i} className={`ml-2.5 ${i < wrong ? "text-wrong" : "text-rule"}`}>
               {i < wrong ? "×" : "·"}
             </span>
           ))}
@@ -85,7 +87,8 @@ export function ChoiceInput({
             (state !== "solving" && correctAnswer === opt) ||
             (state === "correct" && isPicked);
           const isWrongPick = isPicked && state === "failed" && !isCorrect;
-          const accent = isCorrect || isSelected;
+          const isWrongFlash = wrongFlash != null && opt === wrongFlash;
+          const showWrong = isWrongPick || isWrongFlash;
           const pct =
             showBars && stats ? ((stats.counts[opt] ?? 0) / stats.total) * 100 : 0;
           return (
@@ -95,9 +98,8 @@ export function ChoiceInput({
               onClick={() => onPick(opt)}
               className={`relative overflow-hidden grid grid-cols-[32px_1fr] items-center gap-3.5 text-left
                 border min-h-[60px] sm:min-h-[auto] py-4 sm:py-3 transition-all
-                ${isCorrect ? "bg-accent-soft animate-glow-pulse" : isSelected ? "bg-paper-alt" : ""}
-                ${accent ? "border-accent" : "border-rule"}
-                ${isWrongPick ? "opacity-40" : "opacity-100"}
+                ${isCorrect ? "bg-success-soft animate-glow-pulse" : showWrong ? "bg-wrong-soft" : isSelected ? "bg-paper-alt" : ""}
+                ${isCorrect ? "border-success" : showWrong ? "border-wrong" : isSelected ? "border-accent" : "border-rule"}
                 ${disabled ? "cursor-default" : "cursor-pointer hover:bg-paper-alt active:bg-paper-alt"}`}
             >
               {showBars && (
@@ -109,7 +111,7 @@ export function ChoiceInput({
               )}
               <span
                 className={`relative font-mono font-medium text-center h-full flex items-center justify-center border-r
-                  ${accent ? "text-accent border-accent" : "text-ink-soft border-rule"}`}
+                  ${isCorrect ? "text-success border-success" : showWrong ? "text-wrong border-wrong" : isSelected ? "text-accent border-accent" : "text-ink-soft border-rule"}`}
               >
                 {letter}
               </span>

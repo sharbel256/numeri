@@ -16,7 +16,7 @@ def _seed(puzzles_dir, d=date(2026, 5, 2), category="algebra"):
             "question": "medium",
             "answer": "5",
             "choices": ["3", "5", "7", "8"],
-            "hints": [{"text": "subtract 7", "cost": 15}],
+            "pitfalls": ["don't subtract 7"],
         },
         3: {
             "question": "hard",
@@ -28,10 +28,10 @@ def _seed(puzzles_dir, d=date(2026, 5, 2), category="algebra"):
 
 
 def test_get_today_picks_one_category(client: TestClient, puzzles_dir, monkeypatch):
-    # routes.py imports today_utc into its namespace; patch the bound name.
+    # routes.py imports today_chicago into its namespace; patch the bound name.
     from app import routes as routes_mod
 
-    monkeypatch.setattr(routes_mod, "today_utc", lambda: date(2026, 5, 2))
+    monkeypatch.setattr(routes_mod, "today_chicago", lambda: date(2026, 5, 2))
     _seed(puzzles_dir, date(2026, 5, 2), "algebra")
     _seed(puzzles_dir, date(2026, 5, 2), "calculus")
     res = client.get("/api/today")
@@ -46,7 +46,7 @@ def test_get_today_picks_one_category(client: TestClient, puzzles_dir, monkeypat
 def test_get_today_no_puzzles(client: TestClient, puzzles_dir, monkeypatch):
     from app import routes as routes_mod
 
-    monkeypatch.setattr(routes_mod, "today_utc", lambda: date(2099, 1, 1))
+    monkeypatch.setattr(routes_mod, "today_chicago", lambda: date(2099, 1, 1))
     res = client.get("/api/today")
     assert res.status_code == 200
     assert res.json() == {"date": "2099-01-01", "category": None}

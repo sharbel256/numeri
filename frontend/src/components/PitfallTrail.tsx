@@ -1,33 +1,32 @@
-import type { Hint } from "../lib/types";
-
 import { Latex } from "./Latex";
 
 interface Props {
-  hints: Hint[];
+  pitfalls: string[];
   revealed: number;
   onRequest: () => void;
   canRequest: boolean;
   state: "solving" | "correct" | "failed";
 }
 
-export function HintTrail({ hints, revealed, onRequest, canRequest, state }: Props) {
+export function PitfallTrail({ pitfalls, revealed, onRequest, canRequest, state }: Props) {
+  if (pitfalls.length === 0) return null;
   return (
     <aside className="flex flex-col gap-3.5 border-t border-rule pt-5 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
       <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft">
-        <span>Margin notes</span>
+        <span>Hints</span>
         <span>
-          {revealed} / {hints.length}
+          {revealed} / {pitfalls.length}
         </span>
       </div>
 
       {revealed === 0 && state === "solving" && (
         <div className="font-display italic text-ink-soft text-sm leading-relaxed">
-          stuck? ask for a hint — each one costs 15 points.
+          stuck? ask for a hint — we'll tell you what <em>not</em> to try.
         </div>
       )}
 
       <div className="flex flex-col">
-        {hints.slice(0, revealed).map((h, i) => (
+        {pitfalls.slice(0, revealed).map((p, i) => (
           <div
             key={i}
             className={`pb-4 mb-4 last:pb-0 last:mb-0 animate-fade-in ${
@@ -35,10 +34,10 @@ export function HintTrail({ hints, revealed, onRequest, canRequest, state }: Pro
             }`}
           >
             <div className="font-mono text-[10px] tracking-[0.08em] text-accent mb-1.5">
-              Note {i + 1} · −{h.cost}
+              Hint {i + 1}
             </div>
             <Latex
-              source={h.text}
+              source={p}
               className="hint-prose font-display text-base leading-relaxed text-ink"
             />
           </div>

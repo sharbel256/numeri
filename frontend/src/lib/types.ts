@@ -11,11 +11,6 @@ export type Category =
 
 export type Level = 1 | 2 | 3;
 
-export interface Hint {
-  text: string;
-  cost: number;
-}
-
 export interface PublicPuzzle {
   date: string;
   category: Category;
@@ -23,7 +18,7 @@ export interface PublicPuzzle {
   question: string;
   choices: string[];
   choice_labels: string[] | null;
-  hints: Hint[];
+  pitfalls: string[];
   walkthrough: string | null;
 }
 

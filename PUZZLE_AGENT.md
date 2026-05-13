@@ -190,27 +190,50 @@ Format: ISO date, category, status, brief detail. Keep each line under ~120 char
 
 ---
 
-## 8. Hints and walkthroughs
+## 8. Pitfall hints and walkthroughs
 
-**Hints:** 1–3 per level, escalating from gentle nudge → relevant formula/identity → near-direct setup. Costs 10–20 (default 15). L1 may have just one hint; L3 should have three.
+The hint system has been replaced with **pitfall hints**: short warnings about what *not* to try. The user might pursue a tempting approach confidently for ten minutes before realizing it leads nowhere; a pitfall spares them that dead-end without giving away the right move. The reader retains the satisfaction of finding the path themselves.
 
-Pattern (calculus L3 in `~/numeri-puzzles/2026-05-03/calculus.yaml` is a good template):
-- Hint 1: name the technique ("use the product rule").
-- Hint 2: identify the pieces ("let `u = x^3`, `v = sin(x)`").
-- Hint 3: give the derivatives of the pieces.
+**Schema:** `pitfalls: list[str]` on each `Difficulty` — flat strings, no objects, no costs (the point system was removed). The previous `hints` field with `text`/`cost` is ignored if present (legacy YAMLs still parse), but new puzzles use `pitfalls` only.
 
-**Hints render in a narrow sidebar (~280px on desktop, full-width on mobile).** Math that would overflow that column scrolls horizontally inside the hint block, which is ugly. To keep hints visually clean:
-- Use **inline math `$...$` only** in hints. No `$$...$$` display equations.
-- Avoid wide constructs in hints: `\dfrac` (use `\tfrac` or `a/b`), long sums or integrals with bounds, multi-line `\cases`, anything that would render wider than ~30 monospace characters.
-- If a step genuinely needs a big equation, *split it across two hints* or push it into the walkthrough. The hint should hand the user the idea; the walkthrough does the algebra.
+**Counts:**
+- **L1: no pitfalls.** Level-1 problems are too direct to have a seductive wrong path. `CategoryDay` validation rejects pitfalls on L1.
+- L2: 1–2 pitfalls.
+- L3: 2–3 pitfalls.
 
-**Walkthrough:** the key step rendered in LaTeX, plus the final answer. Doesn't need to be a full essay — show the move that unlocks the problem. Prefer `$$...$$` for display equations, `$...$` inline. The walkthrough renders in the wide main column, so display math is fine here.
+**Two iron rules:**
+1. **Name a specific tempting wrong approach.** Not "don't make mistakes" — name the trap (Pythagoras-alone, coordinates, Heron, expanding the product, induction, brute force, etc.).
+2. **Never redirect to the right approach.** "Don't expand — use symmetry" is half-spoiler. Trim it: "Don't expand — you'll fight through forty terms." If "use symmetry" alone would give it away, leave it out entirely.
+
+**Voice — subtle, dry, deadpan.** Avoid the cold "Don't X" opener, but also avoid theatrical metaphors and over-personification. The humor should live in the structure of the sentence — a flat declarative followed by a quiet kicker — not in big imagery. Think terse adviser, not actor. Examples from `~/numeri-puzzles/2026-05-12/geometry.yaml` (L2 + L3):
+
+```yaml
+# L2 — incircle right triangle
+pitfalls:
+  - "Pythagoras gives you one equation. You have two unknowns. The arithmetic doesn't get more generous."
+  - "Heron's formula asks for three sides. The hypotenuse is not three sides."
+
+# L3 — equilateral with interior point
+pitfalls:
+  - "Coordinates will get you there. By the third substitution you'll wish they hadn't."
+  - "The law of cosines wants an angle at $P$. You have none. Inventing one is not a method."
+  - "$3$, $4$, $5$ — Pythagorean, yes. You're not the first to notice. You won't be the last to be wrong about what it implies."
+```
+
+**Dark humor on the third pitfall.** When an L3 has three pitfalls, the final one carries a dry, deadpan dark note — failure stated as fact rather than dramatized. Quiet implications of solvers who came before and were wrong, of evenings spent on the wrong path. **Avoid**: gravestones, ghosts, "and they never returned," sunk-cost monologues, any phrasing that reads as melodrama or edge. The reader should register the darkness on a second reading, not the first.
+
+**Width / KaTeX constraints still apply.** Pitfalls render in the narrow sidebar (~280px on desktop, full-width on mobile):
+- Inline math `$...$` only. No `$$...$$` display equations.
+- Avoid wide constructs: `\dfrac` (use `\tfrac` or `a/b`), long sums/integrals with bounds, multi-line `\cases`, anything that would render wider than ~30 monospace characters.
+- If a pitfall needs a big equation to land, rewrite it shorter or split it.
+
+**Walkthrough:** unchanged. Show the key step in LaTeX plus the final answer. Doesn't need to be a full essay — show the move that unlocks the problem. Use `$$...$$` for display equations, `$...$` inline. The walkthrough renders in the wide main column, so display math is fine here.
 
 ---
 
 ## 9. Style rules
 
-- **KaTeX everywhere math appears.** This is non-negotiable. Any operator, function name, fraction, exponent, Greek letter, integral, sum, root, etc. anywhere in `question`, `hints[*].text`, `walkthrough`, or `choice_labels[*]` **must live inside `$...$` (inline) or `$$...$$` (display)**. No bare `2*x`, `pi/4`, `sin(x)`, `x^2` outside math delimiters — the user sees the literal characters, which looks broken. Plain English narration around the math is fine; the math itself is always wrapped. Escape backslashes correctly in YAML (use block scalars `|` for multi-line content with LaTeX — backslashes don't need escaping inside block scalars).
+- **KaTeX everywhere math appears.** This is non-negotiable. Any operator, function name, fraction, exponent, Greek letter, integral, sum, root, etc. anywhere in `question`, `pitfalls[*]`, `walkthrough`, or `choice_labels[*]` **must live inside `$...$` (inline) or `$$...$$` (display)**. No bare `2*x`, `pi/4`, `sin(x)`, `x^2` outside math delimiters — the user sees the literal characters, which looks broken. Plain English narration around the math is fine; the math itself is always wrapped. Escape backslashes correctly in YAML (use block scalars `|` for multi-line content with LaTeX — backslashes don't need escaping inside block scalars).
 - **Numeric answers:** prefer exact rationals as strings (`"1/2"`, `"7"`) over decimals.
 - **Choices (matching strings):** strings, even for numbers (`"3"`, not `3`). All choices in the same form (don't mix `"0.5"` with `"1/2"`). The canonical `answer` string must appear verbatim as one of the choices, character-for-character — the backend check is exact string match (`backend/app/equivalence.py`). **No LaTeX delimiters inside `choices`** — those go in `choice_labels`.
 - **`choice_labels` (display strings):** parallel array, same length as `choices`, paired by index. Each entry is fully LaTeX-formatted, almost always `$...$`-wrapped. Required whenever any choice contains math. Example pairing:
@@ -228,7 +251,7 @@ Pattern (calculus L3 in `~/numeri-puzzles/2026-05-03/calculus.yaml` is a good te
   ```
   When you shuffle (§5b.6), shuffle the *paired* `(choices[i], choice_labels[i])` together — never independently.
 - **Question phrasing:** clear, self-contained, no references to "yesterday's puzzle" or external context. State all definitions you use.
-- **Beauty test (apply before finalizing each level):** mentally render every text field. If any equation would appear as raw `2*x` or `pi/4`, you forgot delimiters. If a hint contains an equation that would clearly overflow ~30 chars of monospace, rewrite it shorter or split the hint.
+- **Beauty test (apply before finalizing each level):** mentally render every text field. If any equation would appear as raw `2*x` or `pi/4`, you forgot delimiters. If a pitfall contains an equation that would clearly overflow ~30 chars of monospace, rewrite it shorter.
 
 ---
 
