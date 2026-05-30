@@ -31,12 +31,19 @@ export function ChoiceInput({
   wrong,
   stats,
 }: Props) {
+  const [revealed, setRevealed] = useState(false);
+  const showChoices = revealed || state !== "solving";
+
   useEffect(() => {
     if (state !== "solving") return;
     function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === "Enter" && picked != null) {
         e.preventDefault();
         onSubmit();
+      } else if (e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        setRevealed((v) => !v);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -78,7 +85,19 @@ export function ChoiceInput({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
+      {!showChoices ? (
+        <button
+          type="button"
+          onClick={() => setRevealed(true)}
+          className="grid place-items-center border border-dashed border-rule min-h-[132px]
+            text-ink-soft hover:bg-paper-alt hover:text-ink transition-colors cursor-pointer mt-3"
+        >
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em]">
+            Show options <span className="opacity-60 ml-1.5">R</span>
+          </span>
+        </button>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
         {choices.map((opt, idx) => {
           const letter = String.fromCharCode(65 + idx);
           const isPicked = picked === opt;
@@ -131,9 +150,10 @@ export function ChoiceInput({
             </button>
           );
         })}
-      </div>
+        </div>
+      )}
 
-      {state === "solving" && (
+      {state === "solving" && showChoices && (
         <button
           type="button"
           onClick={onSubmit}

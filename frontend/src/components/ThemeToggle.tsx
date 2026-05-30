@@ -27,12 +27,32 @@ function applyTheme(t: Theme) {
 
 const THEMES: Theme[] = ["noon", "midnight"];
 
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "TEXTAREA") return true;
+  if (tag === "INPUT") return !(target as HTMLInputElement).disabled;
+  return target.isContentEditable;
+}
+
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(readTheme);
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(e.target)) return;
+      const k = e.key.toLowerCase();
+      if (k === "n") setTheme("noon");
+      else if (k === "m") setTheme("midnight");
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div className="flex items-baseline gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em]">
