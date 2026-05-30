@@ -38,8 +38,8 @@ Run from `/Users/sharbel/code/numeri`. The backend code under `backend/app/` is 
 4. **Compute rotation category for `target`:**
    ```
    epoch = date(2026, 4, 20)
-   order = ["algebra", "geometry", "numbers", "logic",
-            "probability", "calculus", "theory"]
+   order = ["algebra", "geometry", "numbers", "trigonometry",
+            "probability", "calculus", "solid"]
    category = order[(target - epoch).days % 7]
    ```
    Seven categories, one per day of the week. Mirror `backend/app/puzzles.py:43-64` exactly. If that file changes, this constant changes with it.
@@ -75,7 +75,7 @@ Order rule: `choice_labels[i]` is the visual form of `choices[i]`. Don't shuffle
 - L1: quadratic, two-variable system, multi-step linear with a twist, or an arithmetic-flavored problem about digits/divisibility/clever decomposition. L2: clever factoring, substitution, system that needs a non-obvious move. L3: functional equation, parameterized family, problem requiring identification of an invariant or symmetry.
 
 ### `geometry`
-- Angles, lengths, areas, volumes, similarity. Plane and solid both fine.
+- Plane geometry: angles, lengths, areas, similarity, circles, triangles, polygons. 3D shapes belong in `solid`.
 - Answers: numeric usually; closed forms involving `sqrt`, `pi` when cleanest.
 - Describe figures precisely in text (KaTeX). No images. Be unambiguous about what's given.
 - L3 often hinges on a key auxiliary construction or invariant.
@@ -85,11 +85,10 @@ Order rule: `choice_labels[i]` is the visual form of `choices[i]`. Don't shuffle
 - Answers: integers or simple rationals.
 - L1: modular reasoning, gcd/lcm with a twist. L2: structural argument, often "find all" reduced to a single count. L3: problem combining modular arithmetic with a counting or extremal argument; competition-style.
 
-### `logic`
-- Deductive puzzles, knights/knaves, grid logic, parity arguments. Also absorbs word problems — short real-world stories that resolve to a numerical answer — when a level wants a narrative framing.
-- 3–5 options — logic often has a small natural option set.
-- Word-problem flavor: story should be short and unambiguous, no trick wording, double-check unit consistency.
-- Verification is harder — be extra careful and write your reasoning out fully before finalizing.
+### `trigonometry`
+- Trig identities, equations, triangle problems (law of sines / cosines), unit-circle reasoning, inverse trig.
+- Answers: closed forms involving `sin`, `cos`, `tan`, `pi/n`, `sqrt`; bare integers when an angle/value collapses cleanly.
+- L1: identity application, basic equation solving, right-triangle setup with a twist. L2: sum/difference or double-angle move, equation with multiple solutions in a range, triangle needing both laws. L3: identity-heavy reduction to a number, parameterized triangle, problem fusing trig with algebra or plane geometry.
 
 ### `probability`
 - Discrete probability, expected value, simple combinatorics.
@@ -102,10 +101,11 @@ Order rule: `choice_labels[i]` is the visual form of `choices[i]`. Don't shuffle
 - L1: chain/product/quotient rule, u-substitution, basic limit, or a linear first-order ODE with integrating factor / simple separable IVP. L2: integration by parts, optimization with constraints, non-trivial limit, second-order constant-coefficient ODE (homogeneous + particular), Bernoulli, exact equation. L3: trig/partial-fraction integral, series convergence with a subtle test, multi-step optimization, parametric or related-rates with a twist, second-order IVP with a non-trivial forcing term, system of two ODEs, or substitution-based reduction.
 - For ODE problems, specify boundary/initial conditions explicitly when the answer is a particular solution.
 
-### `theory`
-- Set theory, abstract algebra (groups), graph theory, combinatorial identities, proofs reduced to a count.
-- Answers: integer counts, or which property holds (named string).
-- L3 often: "how many distinct X up to Y" — the kind of problem that has a closed-form once you see the structure.
+### `solid`
+- 3D geometry: volumes, surface areas, cross-sections, polyhedra, spheres, cylinders, cones, frustums, inscribed/circumscribed solids.
+- Answers: numeric usually; closed forms involving `sqrt`, `pi` when cleanest.
+- Describe the solid precisely in text (KaTeX). No images. State which solid, its defining measurements, and any inscribed/circumscribed relationship unambiguously.
+- L3 often reduces to a 2D problem via a clever cross-section, projection, or symmetry argument.
 
 ---
 
@@ -137,7 +137,7 @@ def equiv_num(a: str, b: str, tol: float = 1e-6) -> bool:
     return abs(float(sympify(a)) - float(sympify(b))) < tol
 ```
 
-Solve the puzzle in code (or by independent hand calculation, then encode the result), then assert the stored answer equals the computed answer. For categories that resist symbolic solving (logic, some probability), solve it twice by hand using two different framings and confirm they agree.
+Solve the puzzle in code (or by independent hand calculation, then encode the result), then assert the stored answer equals the computed answer. For categories that resist symbolic solving (some probability, some combinatorial `solid` problems), solve it twice by hand using two different framings and confirm they agree.
 
 ### 5b. Multiple-choice checks
 
@@ -181,9 +181,9 @@ For each target day being generated:
 Append one line **per target day processed** to `~/numeri-puzzles/_generation_log.md` (so a single run typically appends 1–3 lines). The ISO date is the puzzle's target day, not the run date.
 
 ```
-- 2026-05-04 logic — OK (4 / 4 / 3 choices) — verified
-- 2026-05-04 logic — SKIP (file already exists)
-- 2026-05-04 logic — FAIL (L3 verification: distractor "1/2" equiv to answer "0.5")
+- 2026-05-04 trigonometry — OK (4 / 4 / 3 choices) — verified
+- 2026-05-04 trigonometry — SKIP (file already exists)
+- 2026-05-04 trigonometry — FAIL (L3 verification: distractor "1/2" equiv to answer "0.5")
 ```
 
 Format: ISO date, category, status, brief detail. Keep each line under ~120 chars.
@@ -227,7 +227,25 @@ pitfalls:
 - Avoid wide constructs: `\dfrac` (use `\tfrac` or `a/b`), long sums/integrals with bounds, multi-line `\cases`, anything that would render wider than ~30 monospace characters.
 - If a pitfall needs a big equation to land, rewrite it shorter or split it.
 
-**Walkthrough:** unchanged. Show the key step in LaTeX plus the final answer. Doesn't need to be a full essay — show the move that unlocks the problem. Use `$$...$$` for display equations, `$...$` inline. The walkthrough renders in the wide main column, so display math is fine here.
+**Walkthrough.** Two parts, in order:
+
+1. **Solution.** Show the key step in LaTeX plus the final answer. Doesn't need to be a full essay — show the move that unlocks the problem. Use `$$...$$` for display equations, `$...$` inline. The walkthrough renders in the wide main column, so display math is fine here.
+2. **Real-world use case** (mandatory, 1–3 sentences, last paragraph). Name a concrete place this *exact technique* is the load-bearing step. The goal is to leave the solver with *"oh, that's why this matters"* rather than *"another puzzle done"*. If you genuinely can't find a non-contrived application (some pure number-theory or abstract problems), say so briefly rather than inventing one — honesty beats a forced connection.
+
+**Specificity bar — must pass all three:**
+- **Names a concrete artifact, formula, instrument, standard, algorithm, or named result.** Good: "the Markowitz efficient frontier", "the JPEG DCT", "Pappus's centroid theorem", "the GPS clock correction". Bad: "engineering", "audio processing", "physics", "computer graphics" — these are fields, not load-bearing referents.
+- **Names *who or what does the thing*, not a profession in the abstract.** Good: "piano tuners count beats per second". Bad: "engineers use this", "scientists rely on this", "manufacturers solve a version of this".
+- **Swap test.** If you could replace the technique in your example with any other technique from the same category and the sentence still reads fine, it's too generic. The example must *depend on the specific move the solver just made* — not on the category as a whole.
+
+Common failure modes to avoid:
+- "X is used to recover/reconstruct/model Y" where Y is generic ("a 3D volume", "a signal", "a system"). Name the *specific* Y: a CT scan of a lung, the GPS L1 carrier, the Voyager telemetry budget.
+- "X appears in [field]." Fields don't count. Name the artifact inside the field.
+- "X is what allows [profession] to do their job." Professions don't count. Name the specific task and the specific role of the technique in it.
+
+Examples of the real-world paragraph (each meets the bar above):
+- (calculus, Lagrange multipliers) *"This is the setup behind the Markowitz efficient frontier: find the asset mix with minimum variance subject to a target return. The multiplier itself has a name there — it's the risk-aversion coefficient, the slope at which an investor trades variance for expected return."*
+- (trigonometry, sum-to-product) *"Piano tuners rely on this identity. When two strings are slightly mistuned, the sum-to-product expansion shows the audible beat frequency is exactly the difference of their pitches — tuners count beats per second by ear and drive that difference toward zero."*
+- (solid, cross-section / volume of revolution) *"Pappus's centroid theorem collapses this integral into a multiplication: volume equals cross-sectional area times the distance the centroid travels. Machinists use it to compute the metal in an O-ring or a fillet weld without ever setting up an integral."*
 
 ---
 
@@ -257,7 +275,7 @@ pitfalls:
 
 ## 10. Quick reference
 
-- Categories (in rotation order): `algebra, geometry, numbers, logic, probability, calculus, theory`
+- Categories (in rotation order): `algebra, geometry, numbers, trigonometry, probability, calculus, solid`
 - Rotation epoch: `2026-04-20` (`backend/app/puzzles.py:43`)
 - Output dir: `~/numeri-puzzles/{YYYY-MM-DD}/{category}.yaml`
 - Audit log: `~/numeri-puzzles/_generation_log.md`

@@ -7,10 +7,10 @@ Category = Literal[
     "algebra",
     "geometry",
     "numbers",
-    "logic",
+    "trigonometry",
     "probability",
     "calculus",
-    "theory",
+    "solid",
 ]
 
 Level = Literal[1, 2, 3]

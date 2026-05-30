@@ -18,10 +18,10 @@ const CATEGORY_NAMES: Record<Category, string> = {
   algebra: "Algebra",
   geometry: "Geometry",
   numbers: "Number Theory",
-  logic: "Logic & Sequences",
+  trigonometry: "Trigonometry",
   probability: "Probability",
   calculus: "Calculus",
-  theory: "Theory",
+  solid: "3D Geometry",
 };
 
 const LEVELS: Level[] = [1, 2, 3];

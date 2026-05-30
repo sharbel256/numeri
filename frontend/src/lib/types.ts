@@ -4,10 +4,10 @@ export type Category =
   | "algebra"
   | "geometry"
   | "numbers"
-  | "logic"
+  | "trigonometry"
   | "probability"
   | "calculus"
-  | "theory";
+  | "solid";
 
 export type Level = 1 | 2 | 3;
 

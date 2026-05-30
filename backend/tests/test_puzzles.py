@@ -74,10 +74,10 @@ def test_category_for_date_round_robin(puzzles_dir: Path):
         "algebra",
         "geometry",
         "numbers",
-        "logic",
+        "trigonometry",
         "probability",
         "calculus",
-        "theory",
+        "solid",
     )
     d1 = date(2026, 5, 2)
     d2 = date(2026, 5, 3)
@@ -97,8 +97,8 @@ def test_category_for_date_round_robin(puzzles_dir: Path):
 def test_category_for_date_falls_through_missing(puzzles_dir: Path):
     # Only one category published; rotation must fall through to it.
     d = date(2026, 5, 2)
-    write_category(puzzles_dir, d, "theory", basic_levels())
-    assert category_for_date(d, puzzles_dir) == "theory"
+    write_category(puzzles_dir, d, "calculus", basic_levels())
+    assert category_for_date(d, puzzles_dir) == "calculus"
 
 
 def test_category_for_date_none_when_empty(puzzles_dir: Path):
