@@ -25,6 +25,7 @@ def load_category(date: date_type, category: Category, puzzles_dir: Path) -> Cat
         raise PuzzleNotFound(f"{date.isoformat()}/{category}")
     with path.open("r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
+    data["date"] = date.isoformat()
     return CategoryDay.model_validate(data)
 
 

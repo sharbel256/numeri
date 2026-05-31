@@ -160,7 +160,7 @@ If a level fails verification, regenerate it. Up to 3 attempts per level. If sti
 
 For each target day being generated:
 
-1. Write YAML to `~/numeri-puzzles/{target}/{category}.yaml`. Use `ruamel.yaml` or `pyyaml` with block style for multi-line `question` and `walkthrough` fields. UTF-8, no trailing whitespace.
+1. Write YAML to `~/numeri-puzzles/{target}/{category}.yaml`. Use `ruamel.yaml` or `pyyaml` with block style for multi-line `question` and `walkthrough` fields. UTF-8, no trailing whitespace. **Do not include a `date` field in the YAML** — the backend injects it from the directory path at load time.
 2. **Validate by loading via the project's own model:**
    ```bash
    cd /Users/sharbel/code/numeri/backend
@@ -168,6 +168,7 @@ For each target day being generated:
    import sys, yaml
    from app.models import CategoryDay
    data = yaml.safe_load(open('$HOME/numeri-puzzles/{target}/{category}.yaml'))
+   data['date'] = '{target}'
    CategoryDay.model_validate(data)
    print('OK')
    "
